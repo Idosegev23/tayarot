@@ -39,41 +39,43 @@ export async function generateStyledImage({
     let prompt = '';
     
     if (style === 'holy_land') {
-      prompt = `Add professional text overlay to this travel photo from ${location}.
+      prompt = `You are a professional graphic designer creating a social media post. Add text overlay to this travel photo.
 
-CRITICAL INSTRUCTIONS:
-- KEEP the original photo exactly as is - DO NOT change, filter, or modify the background image
-- ONLY ADD text overlay on top of the existing photo
-- Use semi-transparent dark gradient overlays ONLY where needed for text readability
+IMPORTANT: The photo MUST include ALL THREE text elements below. Do not skip any!
 
-TEXT OVERLAY (render with high-fidelity typography):
-Location Title: "${location}" 
-  - Font: Elegant serif (like Playfair Display)
-  - Position: Top third of image
-  - Color: White with subtle dark shadow
-  - Size: Large, prominent
+===== TEXT ELEMENTS TO ADD (ALL REQUIRED) =====
 
-Experience Quote: "${experience}"
-  - Font: Clean, readable sans-serif (like Inter or Helvetica)
-  - Position: Center of image
-  - Color: White with dark shadow for readability
-  - Size: Medium, centered
-  - Max 2 lines, well-spaced
+1. LOCATION (at the TOP):
+   Text: "${location}"
+   Font: Large elegant serif, white color with shadow
+   Position: Upper 20% of image
+   
+2. EXPERIENCE (in the MIDDLE):
+   Text: "${experience}"
+   Font: Medium sans-serif, white color with shadow
+   Position: Center 40-60% of image
+   
+3. BIBLICAL VERSE (at the BOTTOM) - MUST INCLUDE:
+   Text: "${biblicalVerse || 'Verse not provided'}"
+   Font: Italic serif, GOLD color (#EBB877 or warm golden), with shadow
+   Position: Lower 20% of image
+   Style: Include quotation marks around the verse
+   
+===== DESIGN REQUIREMENTS =====
+- Add semi-transparent dark gradient behind each text block for readability
+- Use high-quality typography with proper spacing
+- Text must be LARGE enough to read on mobile
+- Maintain original photo quality
+- Professional Instagram/Facebook aesthetic
 
-${biblicalVerse ? `Biblical Verse: "${biblicalVerse}"
-  - Font: Elegant italic serif
-  - Position: Bottom third of image
-  - Color: Warm gold (#EBB877) with subtle shadow
-  - Size: Small to medium
-  - Format as quote with quotation marks` : ''}
+===== EXAMPLE LAYOUT =====
+[TOP 20%]     "JERUSALEM" (white, large)
+[MIDDLE 40%]  "Standing at the Western Wall..." (white, medium)
+[BOTTOM 20%]  "Pray for the peace of Jerusalem" (gold, italic)
 
-OVERLAY DESIGN:
-- Add subtle dark gradient (black with 40% opacity) behind text areas only
-- Text should be crisp, perfectly kerned, and highly readable
-- Professional travel social media aesthetic
-- Maintain original photo quality and composition
+CRITICAL: You MUST include the biblical verse in GOLD color at the bottom. This is not optional!
 
-OUTPUT: Return the SAME photo with beautiful text overlay added - ready for Facebook/Instagram.`;
+Return the enhanced image ready for social media.`;
     } else {
       prompt = `Add modern text overlay to this travel photo from ${location}.
 
