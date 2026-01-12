@@ -32,7 +32,8 @@ export async function generateStyledImage({
     const genAI = new GoogleGenerativeAI(apiKey);
     // Use Nano Banana Pro model for professional image editing
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-3-pro-image-preview'
+      model: 'gemini-3-pro-image-preview',
+      systemInstruction: 'You are a photo editor, not an image generator. Your task is to edit existing photos by cropping them and adding text overlays. You must NEVER generate new images or modify the original photo content. Only crop and add text.'
     });
 
     // Create a detailed JSON prompt based on style - optimized for Nano Banana Pro
@@ -40,11 +41,11 @@ export async function generateStyledImage({
     
     if (style === 'holy_land') {
       promptConfig = {
-        "task": "Add professional text overlay to travel photo - DO NOT generate new background",
-        "main_subject": `Keep original travel photo from ${location} as background, add text overlay only`,
-        "art_style": "Professional social media post design, photorealistic text overlay, Instagram/Facebook aesthetic",
-        "aspect_ratio": "1:1 square format (1080x1080px) - CRITICAL for social media posts",
-        "composition_note": "If original photo is not square, crop it to square format while maintaining the main subject in frame",
+        "editing_mode": "PHOTO EDITING ONLY - Preserve original photo completely",
+        "task": "Crop to 1:1 square and add text overlay ONLY - NO image generation, NO filters, NO effects",
+        "original_photo": `User's actual travel photo from ${location} - DO NOT recreate or modify this photo`,
+        "aspect_ratio": "Center-crop to 1:1 square (1080x1080px) if not already square",
+        "art_style": "Clean text overlay on the UNMODIFIED original photo, professional typography only",
         "text_elements": [
           {
             "content": location.toUpperCase(),
@@ -90,11 +91,11 @@ export async function generateStyledImage({
       };
     } else {
       promptConfig = {
-        "task": "Add modern text overlay to travel photo - DO NOT generate new background",
-        "main_subject": `Keep original travel photo from ${location} as background, add text overlay only`,
-        "art_style": "Modern social media post design, clean typography, Instagram aesthetic",
-        "aspect_ratio": "1:1 square format (1080x1080px) - CRITICAL for social media posts",
-        "composition_note": "If original photo is not square, crop it to square format while maintaining the main subject in frame",
+        "editing_mode": "PHOTO EDITING ONLY - Preserve original photo completely",
+        "task": "Crop to 1:1 square and add text overlay ONLY - NO image generation, NO filters, NO effects",
+        "original_photo": `User's actual travel photo from ${location} - DO NOT recreate or modify this photo`,
+        "aspect_ratio": "Center-crop to 1:1 square (1080x1080px) if not already square",
+        "art_style": "Clean text overlay on the UNMODIFIED original photo, modern typography only",
         "text_elements": [
           {
             "content": location.toUpperCase(),
@@ -122,15 +123,32 @@ export async function generateStyledImage({
       };
     }
     
-    const prompt = `INSTRUCTION: Add text overlay to this image following the exact specifications below.
+    const prompt = `⚠️ PHOTO EDITING MODE - NOT IMAGE GENERATION ⚠️
 
-CRITICAL REQUIREMENTS:
-1. This is the original photo - DO NOT regenerate or modify the background image. ONLY add text overlay.
-2. Output MUST be 1:1 square aspect ratio (1080x1080px) for social media. If the original is not square, crop it to square format.
+THIS IS THE USER'S ORIGINAL PHOTO. YOU ARE EDITING IT, NOT CREATING A NEW ONE.
 
+TASK BREAKDOWN:
+Step 1: Take this exact photo as-is
+Step 2: If not square → crop to 1:1 (center crop, 1080x1080px)
+Step 3: Add text overlay with specified typography
+Step 4: Return the result
+
+CRITICAL RULES:
+🚫 NEVER generate/create/synthesize a new background image
+🚫 NEVER apply filters, effects, or artistic styles to the photo
+🚫 NEVER change the photo's colors, lighting, or composition
+🚫 NEVER redraw or recreate anything in the photo
+
+✅ DO crop the photo to square (if needed)
+✅ DO add text overlay on top of the cropped photo
+✅ DO add subtle gradients behind text for readability only
+
+The background photo MUST remain 100% identical to the input - only cropping and text overlay are allowed.
+
+TEXT OVERLAY SPECIFICATIONS:
 ${JSON.stringify(promptConfig, null, 2)}
 
-Execute this design precisely. Return the enhanced image with text overlay in 1:1 square format.`;
+FINAL OUTPUT: The user's original photo (cropped to square if needed) with clean text overlay. The photo itself should be completely unmodified.`;
 
     const result = await model.generateContent([
       {
