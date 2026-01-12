@@ -38,13 +38,21 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
     const toastId = toast.loading('Creating your post...');
 
     try {
+      // Use generated image if available, otherwise use original images
+      const finalImages = generatedImageUrl ? [generatedImageUrl] : images;
+      
+      console.log('📝 Creating post with images:', finalImages);
+      console.log('🎨 Using generated image:', !!generatedImageUrl);
+      
       const result = await createPost({
         guideSlug,
         touristName: undefined,
         location,
         experienceText: experienceText.trim(),
         style,
-        images,
+        images: finalImages,
+        biblicalVerse: biblicalVerse || undefined,
+        verseReference: verseReference || undefined,
       });
 
       toast.dismiss(toastId);
