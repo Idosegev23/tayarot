@@ -17,7 +17,7 @@ interface ChatCreatePostProps {
   guideSlug: string;
 }
 
-type Step = 'welcome' | 'upload' | 'description' | 'preparing' | 'style' | 'done';
+type Step = 'welcome' | 'upload' | 'description' | 'preparing' | 'style' | 'preview' | 'done';
 
 export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
   const router = useRouter();
@@ -32,6 +32,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
   const [generatingImage, setGeneratingImage] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [createdPostId, setCreatedPostId] = useState<string>('');
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -58,10 +59,9 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
       toast.dismiss(toastId);
 
       if (result.success && result.postId) {
+        setCreatedPostId(result.postId);
         setStep('done');
-        setTimeout(() => {
-          router.push(`/g/${guideSlug}/post/${result.postId}`);
-        }, 2000);
+        toast.success('Post created successfully! ✨');
       } else {
         toast.error(result.error || 'Failed to create post');
         setLoading(false);
@@ -70,6 +70,8 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
       console.error('Submit error:', error);
       toast.dismiss(toastId);
       toast.error('An unexpected error occurred');
+      setLoading(false);
+    } finally {
       setLoading(false);
     }
   };
@@ -333,10 +335,10 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                     setGeneratingImage(false);
                     console.log('🏁 Image generation process ended');
                     
-                    // Wait a moment to show the result, then submit
-                    setTimeout(() => {
-                      handleSubmit();
-                    }, 2000);
+                    // Move to preview step to show the generated image
+                    if (generatedImageUrl) {
+                      setStep('preview');
+                    }
                   }}
                   disabled={loading || loadingVerse || generatingImage}
                   fullWidth
@@ -371,22 +373,113 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
           </>
         )}
 
-        {/* Step 5: Done */}
-        {step === 'done' && (
-          <div className="flex items-start gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
-              <img 
-                src="/Logo.png" 
-                alt="Mary" 
-                className="w-full h-full object-contain"
-              />
+        {/* Step 5: Preview Generated Image */}
+        {step === 'preview' && (
+          <>
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+                <img 
+                  src="/Logo.png" 
+                  alt="Mary" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <Card className="flex-1 bg-white shadow-sm p-3">
+                <p className="text-gray-900 text-sm">
+                  ✨ Here's your beautiful image! Take a moment to see how it looks.
+                </p>
+              </Card>
             </div>
-            <Card className="flex-1 bg-white shadow-sm p-3">
-              <p className="text-gray-900 text-sm">
-                All set! ✅ Thank you for being part of this journey 🙏
-              </p>
-            </Card>
-          </div>
+
+            {/* Display Generated Image */}
+            {generatedImageUrl && (
+              <div className="flex items-start gap-2">
+                <div className="w-12 flex-shrink-0"></div>
+                <Card className="flex-1 overflow-hidden shadow-lg">
+                  <img 
+                    src={generatedImageUrl} 
+                    alt="AI Generated Post" 
+                    className="w-full h-auto"
+                  />
+                </Card>
+              </div>
+            )}
+
+            {/* Verse Display */}
+            {biblicalVerse && (
+              <div className="flex items-start gap-2">
+                <div className="w-12 flex-shrink-0"></div>
+                <Card className="flex-1 bg-gradient-to-br from-warm/10 to-accent/5 border border-warm/30 shadow-sm p-4">
+                  <p className="text-sm italic text-gray-700 mb-2">"{biblicalVerse}"</p>
+                  {verseReference && (
+                    <p className="text-xs text-warm font-medium">— {verseReference}</p>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {/* Continue Button */}
+            <div className="flex items-start gap-2">
+              <div className="w-12 flex-shrink-0"></div>
+              <div className="flex-1">
+                <PrimaryButton
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  fullWidth
+                  size="lg"
+                  className="bg-gradient-to-r from-warm to-accent hover:from-warm/90 hover:to-accent/90"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={18} className="mr-2 animate-spin" />
+                      Creating Post...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} className="mr-2" />
+                      Perfect! Create My Post
+                    </>
+                  )}
+                </PrimaryButton>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Step 6: Done */}
+        {step === 'done' && (
+          <>
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+                <img 
+                  src="/Logo.png" 
+                  alt="Mary" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <Card className="flex-1 bg-white shadow-sm p-3">
+                <p className="text-gray-900 text-sm">
+                  All set! ✅ Thank you for being part of this journey 🙏
+                </p>
+              </Card>
+            </div>
+
+            {/* View Post Button */}
+            {createdPostId && (
+              <div className="flex items-start gap-2">
+                <div className="w-12 flex-shrink-0"></div>
+                <div className="flex-1">
+                  <PrimaryButton
+                    onClick={() => router.push(`/g/${guideSlug}/post/${createdPostId}`)}
+                    fullWidth
+                    size="lg"
+                  >
+                    View My Post
+                  </PrimaryButton>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
