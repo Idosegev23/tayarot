@@ -464,18 +464,27 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
               </Card>
             </div>
 
-            {/* View Post Button */}
+            {/* Action Buttons */}
             {createdPostId && (
               <div className="flex items-start gap-2">
                 <div className="w-12 flex-shrink-0"></div>
-                <div className="flex-1">
+                <div className="flex-1 space-y-2">
                   <PrimaryButton
                     onClick={() => router.push(`/g/${guideSlug}/post/${createdPostId}`)}
                     fullWidth
                     size="lg"
+                    className="bg-gradient-to-r from-warm to-accent hover:from-warm/90 hover:to-accent/90"
                   >
-                    View My Post
+                    <Send size={18} className="mr-2" />
+                    Submit for Publishing
                   </PrimaryButton>
+                  <SecondaryButton
+                    onClick={() => router.push(`/g/${guideSlug}`)}
+                    fullWidth
+                    size="md"
+                  >
+                    Back to Chat
+                  </SecondaryButton>
                 </div>
               </div>
             )}

@@ -43,6 +43,8 @@ export async function generateStyledImage({
         "task": "Add professional text overlay to travel photo - DO NOT generate new background",
         "main_subject": `Keep original travel photo from ${location} as background, add text overlay only`,
         "art_style": "Professional social media post design, photorealistic text overlay, Instagram/Facebook aesthetic",
+        "aspect_ratio": "1:1 square format (1080x1080px) - CRITICAL for social media posts",
+        "composition_note": "If original photo is not square, crop it to square format while maintaining the main subject in frame",
         "text_elements": [
           {
             "content": location.toUpperCase(),
@@ -91,6 +93,8 @@ export async function generateStyledImage({
         "task": "Add modern text overlay to travel photo - DO NOT generate new background",
         "main_subject": `Keep original travel photo from ${location} as background, add text overlay only`,
         "art_style": "Modern social media post design, clean typography, Instagram aesthetic",
+        "aspect_ratio": "1:1 square format (1080x1080px) - CRITICAL for social media posts",
+        "composition_note": "If original photo is not square, crop it to square format while maintaining the main subject in frame",
         "text_elements": [
           {
             "content": location.toUpperCase(),
@@ -120,11 +124,13 @@ export async function generateStyledImage({
     
     const prompt = `INSTRUCTION: Add text overlay to this image following the exact specifications below.
 
-CRITICAL: This is the original photo - DO NOT regenerate or modify the background image. ONLY add text overlay.
+CRITICAL REQUIREMENTS:
+1. This is the original photo - DO NOT regenerate or modify the background image. ONLY add text overlay.
+2. Output MUST be 1:1 square aspect ratio (1080x1080px) for social media. If the original is not square, crop it to square format.
 
 ${JSON.stringify(promptConfig, null, 2)}
 
-Execute this design precisely. Return the enhanced image with text overlay.`;
+Execute this design precisely. Return the enhanced image with text overlay in 1:1 square format.`;
 
     const result = await model.generateContent([
       {
