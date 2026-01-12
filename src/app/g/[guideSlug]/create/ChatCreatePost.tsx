@@ -81,8 +81,8 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 1: Welcome & Upload */}
         {step === 'welcome' && (
           <>
-            <div className="flex items-start gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                 <img 
                   src="/Logo.png" 
                   alt="Mary" 
@@ -97,7 +97,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="w-10 flex-shrink-0"></div>
+              <div className="w-12 flex-shrink-0"></div>
               <div className="flex-1">
                 <ImageUploader maxImages={5} onImagesChange={setImages} existingImages={images} />
                 {images.length > 0 && (
@@ -118,8 +118,8 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 2: Location & Description */}
         {step === 'upload' && (
           <>
-            <div className="flex items-start gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                 <img 
                   src="/Logo.png" 
                   alt="Mary" 
@@ -134,7 +134,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="w-10 flex-shrink-0"></div>
+              <div className="w-12 flex-shrink-0"></div>
               <div className="flex-1 space-y-3">
                 <select
                   value={location}
@@ -177,8 +177,8 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 3: Preparing */}
         {step === 'preparing' && (
           <>
-            <div className="flex items-start gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                 <img 
                   src="/Logo.png" 
                   alt="Mary" 
@@ -194,7 +194,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="w-10 flex-shrink-0"></div>
+              <div className="w-12 flex-shrink-0"></div>
               <div className="flex-1">
                 <PrimaryButton
                   onClick={() => setStep('style')}
@@ -211,8 +211,8 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 4: Style Selection */}
         {step === 'style' && (
           <>
-            <div className="flex items-start gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                 <img 
                   src="/Logo.png" 
                   alt="Mary" 
@@ -228,7 +228,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
 
             {biblicalVerse && (
               <div className="flex items-start gap-2">
-                <div className="w-10 flex-shrink-0"></div>
+                <div className="w-12 flex-shrink-0"></div>
                 <Card className="flex-1 bg-gradient-to-br from-accent/10 to-warm/10 border border-accent/30 shadow-sm p-3">
                   <div className="space-y-2">
                     <p className="text-sm italic text-gray-700">"{biblicalVerse}"</p>
@@ -242,7 +242,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
 
             {generatedImageUrl && (
               <div className="flex items-start gap-2">
-                <div className="w-10 flex-shrink-0"></div>
+                <div className="w-12 flex-shrink-0"></div>
                 <Card className="flex-1 overflow-hidden shadow-md">
                   <img 
                     src={generatedImageUrl} 
@@ -260,7 +260,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
             )}
 
             <div className="flex items-start gap-2">
-              <div className="w-10 flex-shrink-0"></div>
+              <div className="w-12 flex-shrink-0"></div>
               <div className="flex-1 space-y-2">
                 <SecondaryButton
                   onClick={async () => {

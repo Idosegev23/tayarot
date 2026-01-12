@@ -10,8 +10,8 @@ export function AppHeader({ guideName, location, day, showBadge = true }: AppHea
     <header className="bg-primary text-white px-4 py-4 shadow-md">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center overflow-hidden p-1.5 flex-shrink-0">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center overflow-hidden p-2 flex-shrink-0 shadow-md">
               <img 
                 src="/Logo.png" 
                 alt="Agent Mary" 

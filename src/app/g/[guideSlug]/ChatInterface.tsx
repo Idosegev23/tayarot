@@ -85,9 +85,9 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
       </button>
 
       {/* Header */}
-      <div className="bg-primary text-white px-4 py-3 shadow-sm flex-shrink-0">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
+      <div className="bg-primary text-white px-4 py-4 shadow-sm flex-shrink-0">
+        <div className="max-w-2xl mx-auto flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden p-1.5 flex-shrink-0 shadow-md">
             <img 
               src="/Logo.png" 
               alt="Agent Mary" 
@@ -105,9 +105,9 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-3 py-4 space-y-3">
           {messages.map((msg, index) => (
-            <div key={index} className="flex items-start gap-2">
+            <div key={index} className="flex items-start gap-3">
               {msg.role === 'assistant' && (
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                   <img 
                     src="/Logo.png" 
                     alt="Mary" 
@@ -129,8 +129,8 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
           ))}
 
           {loading && (
-            <div className="flex items-start gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                 <img 
                   src="/Logo.png" 
                   alt="Mary" 
