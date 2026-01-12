@@ -181,7 +181,7 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Ask Mary anything..."
               disabled={loading}
-              className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-full focus:border-primary focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
+              className="flex-1 px-4 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-full focus:border-primary focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 placeholder:text-gray-400"
             />
             <button
               onClick={handleSend}
