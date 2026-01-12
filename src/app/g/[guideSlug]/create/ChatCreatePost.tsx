@@ -279,32 +279,51 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                     
                     // Generate professional image with Nano Banana Pro
                     // Use the first uploaded image as the base
+                    console.log('🎨 Starting image generation...');
                     if (images.length > 0) {
-                      const imageResult = await generateStyledImage({
-                        location,
-                        experience: experienceText,
-                        style: 'holy_land',
-                        biblicalVerse: verseResult.verse,
-                        sourceImageUrl: images[0], // Use first uploaded image
-                      });
-                      
-                      if (imageResult.success && imageResult.imageData) {
-                        // Upload generated image
-                        const timestamp = Date.now();
-                        const uploadResult = await uploadGeneratedImage(
-                          imageResult.imageData,
-                          imageResult.mimeType || 'image/png',
-                          `${guideSlug}-${location}-styled-${timestamp}`
-                        );
+                      try {
+                        console.log('📸 Source image:', images[0]);
+                        const imageResult = await generateStyledImage({
+                          location,
+                          experience: experienceText,
+                          style: 'holy_land',
+                          biblicalVerse: verseResult.verse,
+                          sourceImageUrl: images[0], // Use first uploaded image
+                        });
                         
-                        if (uploadResult.success && uploadResult.path) {
-                          setGeneratedImageUrl(uploadResult.path);
-                          toast.success('Beautiful image created! ✨');
+                        console.log('🖼️ Image generation result:', { success: imageResult.success, hasData: !!imageResult.imageData });
+                        
+                        if (imageResult.success && imageResult.imageData) {
+                          // Upload generated image
+                          console.log('☁️ Uploading generated image...');
+                          const timestamp = Date.now();
+                          const uploadResult = await uploadGeneratedImage(
+                            imageResult.imageData,
+                            imageResult.mimeType || 'image/png',
+                            `${guideSlug}-${location}-styled-${timestamp}`
+                          );
+                          
+                          console.log('📤 Upload result:', uploadResult);
+                          
+                          if (uploadResult.success && uploadResult.path) {
+                            setGeneratedImageUrl(uploadResult.path);
+                            toast.success('Beautiful image created! ✨');
+                          } else {
+                            console.error('❌ Upload failed:', uploadResult.error);
+                            toast.error('Failed to upload generated image');
+                          }
+                        } else {
+                          console.error('❌ Image generation failed:', imageResult.error);
+                          toast.error('Failed to generate styled image');
                         }
+                      } catch (error) {
+                        console.error('💥 Image generation error:', error);
+                        toast.error('Image generation failed: ' + (error as Error).message);
                       }
                     }
                     
                     setGeneratingImage(false);
+                    console.log('🏁 Image generation process ended');
                     
                     // Wait a moment to show the result, then submit
                     setTimeout(() => {
