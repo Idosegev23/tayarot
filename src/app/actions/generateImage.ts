@@ -200,7 +200,7 @@ export async function suggestBiblicalVerse(
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-    const prompt = `Suggest a meaningful biblical verse from the Hebrew Bible (Tanakh/Old Testament ONLY) that connects to this travel experience in the Holy Land.
+    const prompt = `Suggest ONE SHORT biblical verse from the Hebrew Bible (Tanakh/Old Testament ONLY) that connects to this travel experience in the Holy Land.
 
 Location: ${location}
 Tourist's experience: ${experience}
@@ -208,15 +208,23 @@ Tourist's experience: ${experience}
 CRITICAL Requirements:
 - ONLY use verses from the Hebrew Bible (Tanakh) - Torah, Prophets (Nevi'im), or Writings (Ketuvim)
 - DO NOT use New Testament verses
+- Choose ONLY ONE SINGLE VERSE (maximum 2 sentences)
+- The verse MUST be SHORT and concise - preferably 15-30 words maximum
 - Choose a verse with historical or spiritual connection to ${location}
 - The verse should resonate with the tourist's experience
 - Provide the verse text in English
 - Include the biblical reference (Book Chapter:Verse)
 - Keep it authentic and respectful
-- Prefer well-known, inspiring verses
+- Prefer well-known, SHORT, inspiring verses like:
+  * "The Lord is my shepherd; I shall not want" (Psalm 23:1)
+  * "How lovely are Your dwelling places, O Lord of hosts!" (Psalm 84:2)
+  * "Pray for the peace of Jerusalem" (Psalm 122:6)
+
+DO NOT return entire paragraphs or multiple verses!
+Return ONLY ONE SHORT verse!
 
 Format your response EXACTLY as:
-VERSE: [the verse text]
+VERSE: [ONE SHORT verse only - 15-30 words]
 REFERENCE: [Book Chapter:Verse]`;
 
     const result = await model.generateContent(prompt);
