@@ -1,7 +1,7 @@
 # Agent Mary - Access Links
 
 ## 🌐 Production URL
-**https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app**
+**https://tayarot.vercel.app**
 
 ---
 
@@ -10,12 +10,12 @@
 ### Admin 1
 **Access Key:** `ak_demo_admin_key_12345`
 
-**Link:** https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app/d/admin?k=ak_demo_admin_key_12345
+**Link:** https://tayarot.vercel.app/d/admin?k=ak_demo_admin_key_12345
 
 ### Admin 2
 **Access Key:** `ak_second_admin_key_77889`
 
-**Link:** https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app/d/admin?k=ak_second_admin_key_77889
+**Link:** https://tayarot.vercel.app/d/admin?k=ak_second_admin_key_77889
 
 **יכולות:**
 - ניהול כל הפוסטים של כל המדריכים
@@ -31,13 +31,13 @@
 **Slug:** `sarah`
 **Access Key:** `ak_sarah_guide_key_67890`
 
-**Link:** https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app/d/guide/sarah?k=ak_sarah_guide_key_67890
+**Link:** https://tayarot.vercel.app/d/guide/sarah?k=ak_sarah_guide_key_67890
 
 ### David Levi
 **Slug:** `david`
 **Access Key:** `ak_david_guide_key_11223`
 
-**Link:** https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app/d/guide/david?k=ak_david_guide_key_11223
+**Link:** https://tayarot.vercel.app/d/guide/david?k=ak_david_guide_key_11223
 
 **יכולות:**
 - ניהול פוסטים של הקבוצה שלו
@@ -51,7 +51,7 @@
 
 **Access Key:** `ak_tourism_dash_key_44556`
 
-**Link:** https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app/d/tourism?k=ak_tourism_dash_key_44556
+**Link:** https://tayarot.vercel.app/d/tourism?k=ak_tourism_dash_key_44556
 
 **יכולות:**
 - צפייה בכל הפוסטים (read-only)
@@ -64,10 +64,10 @@
 ## 🌍 Public Tourist Pages (No Key Required)
 
 ### Sarah Cohen's Group
-**Link:** https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app/g/sarah
+**Link:** https://tayarot.vercel.app/g/sarah
 
 ### David Levi's Group
-**Link:** https://tayarot-865pmy6zt-idosegev23s-projects.vercel.app/g/david
+**Link:** https://tayarot.vercel.app/g/david
 
 **תכונות:**
 - צ'אט עם Agent Mary (GPT-5-nano)
