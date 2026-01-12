@@ -35,76 +35,96 @@ export async function generateStyledImage({
       model: 'gemini-3-pro-image-preview'
     });
 
-    // Create a detailed prompt based on style
-    let prompt = '';
+    // Create a detailed JSON prompt based on style - optimized for Nano Banana Pro
+    let promptConfig: any;
     
     if (style === 'holy_land') {
-      prompt = `You are a professional graphic designer creating a social media post. Add text overlay to this travel photo.
-
-IMPORTANT: The photo MUST include ALL THREE text elements below. Do not skip any!
-
-===== TEXT ELEMENTS TO ADD (ALL REQUIRED) =====
-
-1. LOCATION (at the TOP):
-   Text: "${location}"
-   Font: Large elegant serif, white color with shadow
-   Position: Upper 20% of image
-   
-2. EXPERIENCE (in the MIDDLE):
-   Text: "${experience}"
-   Font: Medium sans-serif, white color with shadow
-   Position: Center 40-60% of image
-   
-3. BIBLICAL VERSE (at the BOTTOM) - MUST INCLUDE:
-   Text: "${biblicalVerse || 'Verse not provided'}"
-   Font: Italic serif, GOLD color (#EBB877 or warm golden), with shadow
-   Position: Lower 20% of image
-   Style: Include quotation marks around the verse
-   
-===== DESIGN REQUIREMENTS =====
-- Add semi-transparent dark gradient behind each text block for readability
-- Use high-quality typography with proper spacing
-- Text must be LARGE enough to read on mobile
-- Maintain original photo quality
-- Professional Instagram/Facebook aesthetic
-
-===== EXAMPLE LAYOUT =====
-[TOP 20%]     "JERUSALEM" (white, large)
-[MIDDLE 40%]  "Standing at the Western Wall..." (white, medium)
-[BOTTOM 20%]  "Pray for the peace of Jerusalem" (gold, italic)
-
-CRITICAL: You MUST include the biblical verse in GOLD color at the bottom. This is not optional!
-
-Return the enhanced image ready for social media.`;
+      promptConfig = {
+        "task": "Add professional text overlay to travel photo - DO NOT generate new background",
+        "main_subject": `Keep original travel photo from ${location} as background, add text overlay only`,
+        "art_style": "Professional social media post design, photorealistic text overlay, Instagram/Facebook aesthetic",
+        "text_elements": [
+          {
+            "content": location.toUpperCase(),
+            "position": "top 20% of image",
+            "font": "elegant serif (Playfair Display style)",
+            "size": "extra large, prominent",
+            "color": "pure white (#FFFFFF)",
+            "effects": "strong dark shadow for contrast, semi-transparent dark gradient behind text",
+            "alignment": "center"
+          },
+          {
+            "content": experience,
+            "position": "center 40-60% of image",
+            "font": "clean sans-serif (Inter or Helvetica style)",
+            "size": "medium, readable on mobile",
+            "color": "pure white (#FFFFFF)",
+            "effects": "dark shadow, semi-transparent gradient for readability",
+            "alignment": "center",
+            "max_lines": 2
+          },
+          {
+            "content": `"${biblicalVerse || 'Verse text here'}"`,
+            "position": "bottom 20% of image",
+            "font": "elegant italic serif with quotation marks",
+            "size": "small to medium",
+            "color": "WARM GOLD (#EBB877) - CRITICAL: MUST BE GOLD COLOR",
+            "effects": "subtle shadow, gentle gradient behind",
+            "alignment": "center",
+            "style_note": "Include opening and closing quotation marks"
+          }
+        ],
+        "lighting": "maintain original photo lighting, add subtle dark gradients behind text areas only for readability",
+        "composition": "preserve original photo composition, text overlay must not obscure main photo subjects",
+        "technical_details": "high resolution, crisp typography, perfect text rendering, mobile-optimized",
+        "mood": "spiritual, inspiring, professional",
+        "critical_requirements": [
+          "ALL THREE text elements MUST appear on the image",
+          "Biblical verse MUST be in GOLD color (#EBB877), not white",
+          "Keep original photo unmodified - only add text overlay",
+          "Text must be large enough to read on mobile devices",
+          "Use semi-transparent dark gradients behind text for readability"
+        ]
+      };
     } else {
-      prompt = `Add modern text overlay to this travel photo from ${location}.
-
-CRITICAL INSTRUCTIONS:
-- KEEP the original photo exactly as is - DO NOT change, filter, or modify the background image
-- ONLY ADD text overlay on top of the existing photo
-- Use minimal semi-transparent overlays for text readability only
-
-TEXT OVERLAY (render with high-fidelity typography):
-Location Title: "${location}"
-  - Font: Bold modern sans-serif (like Montserrat Bold)
-  - Position: Top of image
-  - Color: White with strong shadow
-  - Size: Large and bold
-
-Experience Quote: "${experience}"
-  - Font: Clean sans-serif (like Inter)
-  - Position: Center
-  - Color: White with shadow
-  - Size: Medium, well-spaced
-
-OVERLAY DESIGN:
-- Minimal dark gradient overlays for text readability
-- Crisp, professional typography
-- Modern Instagram/Facebook aesthetic
-- Keep original photo vibrant and prominent
-
-OUTPUT: Return the SAME photo with clean text overlay - ready to share.`;
+      promptConfig = {
+        "task": "Add modern text overlay to travel photo - DO NOT generate new background",
+        "main_subject": `Keep original travel photo from ${location} as background, add text overlay only`,
+        "art_style": "Modern social media post design, clean typography, Instagram aesthetic",
+        "text_elements": [
+          {
+            "content": location.toUpperCase(),
+            "position": "top of image",
+            "font": "bold modern sans-serif (Montserrat Bold style)",
+            "size": "large and bold",
+            "color": "pure white (#FFFFFF)",
+            "effects": "strong shadow",
+            "alignment": "center"
+          },
+          {
+            "content": experience,
+            "position": "center of image",
+            "font": "clean sans-serif (Inter style)",
+            "size": "medium",
+            "color": "pure white (#FFFFFF)",
+            "effects": "shadow for readability",
+            "alignment": "center"
+          }
+        ],
+        "lighting": "maintain original photo lighting, minimal dark overlays for text",
+        "composition": "preserve original photo, text overlay only",
+        "technical_details": "high resolution, professional typography, mobile-optimized",
+        "mood": "modern, vibrant, energetic"
+      };
     }
+    
+    const prompt = `INSTRUCTION: Add text overlay to this image following the exact specifications below.
+
+CRITICAL: This is the original photo - DO NOT regenerate or modify the background image. ONLY add text overlay.
+
+${JSON.stringify(promptConfig, null, 2)}
+
+Execute this design precisely. Return the enhanced image with text overlay.`;
 
     const result = await model.generateContent([
       {
