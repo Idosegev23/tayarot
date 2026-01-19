@@ -1,0 +1,18 @@
+# Agent Mary - Robots.txt
+# https://tayarot.vercel.app/robots.txt
+
+# Allow all robots to crawl the site
+User-agent: *
+Allow: /
+
+# Allow crawling of tourist pages
+Allow: /g/*
+
+# Disallow crawling of dashboard pages (private)
+Disallow: /d/*
+
+# Disallow API routes
+Disallow: /api/*
+
+# Sitemap location
+Sitemap: https://tayarot.vercel.app/sitemap.xml

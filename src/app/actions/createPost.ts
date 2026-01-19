@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 import { BIBLICAL_VERSES } from '@/lib/constants';
 import type { PostStyle } from '@/lib/types';
 
@@ -16,8 +17,7 @@ interface CreatePostData {
 }
 
 export async function createPost(data: CreatePostData) {
-  console.log('🔄 createPost action started');
-  console.log('📋 Input data:', {
+  logger.info('Creating post', {
     guideSlug: data.guideSlug,
     location: data.location,
     style: data.style,
@@ -26,11 +26,9 @@ export async function createPost(data: CreatePostData) {
   });
 
   try {
-    console.log('🔌 Creating Supabase client...');
     const supabase = await createClient();
 
     // Get guide by slug
-    console.log('👤 Fetching guide:', data.guideSlug);
     const { data: guide, error: guideError } = await supabase
       .from('guides')
       .select('id')
@@ -38,14 +36,13 @@ export async function createPost(data: CreatePostData) {
       .single();
 
     if (guideError || !guide) {
-      console.error('❌ Guide not found:', guideError);
+      logger.error('Guide not found', guideError || new Error('Unknown error'), { guideSlug: data.guideSlug });
       return { success: false, error: 'Guide not found: ' + (guideError?.message || 'Unknown error') };
     }
 
-    console.log('✅ Guide found:', guide.id);
+    logger.debug('Guide found', { guideId: guide.id, guideSlug: data.guideSlug });
 
     // Insert post
-    console.log('💾 Inserting post into database...');
     const postData = {
       guide_id: guide.id,
       tourist_name: data.touristName || null,
@@ -57,8 +54,6 @@ export async function createPost(data: CreatePostData) {
       biblical_verse: data.biblicalVerse || null,
       verse_reference: data.verseReference || null,
     };
-    
-    console.log('📦 Post data:', postData);
 
     const { data: post, error: postError } = await supabase
       .from('posts')
@@ -67,14 +62,14 @@ export async function createPost(data: CreatePostData) {
       .single();
 
     if (postError || !post) {
-      console.error('❌ Post creation error:', postError);
+      logger.error('Post creation failed', postError || new Error('Unknown error'), { guideSlug: data.guideSlug });
       return { success: false, error: 'Failed to create post: ' + (postError?.message || 'Unknown error') };
     }
 
-    console.log('✅ Post created successfully:', post.id);
+    logger.info('Post created successfully', { postId: post.id, guideSlug: data.guideSlug, style: data.style });
     return { success: true, postId: post.id };
   } catch (error) {
-    console.error('💥 Create post error:', error);
+    logger.error('Unexpected error creating post', error as Error, { guideSlug: data.guideSlug });
     return { 
       success: false, 
       error: 'An unexpected error occurred: ' + (error as Error).message 

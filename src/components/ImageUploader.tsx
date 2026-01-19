@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from './ui/Toast';
+import imageCompression from 'browser-image-compression';
 
 interface ImageUploaderProps {
   maxImages?: number;
@@ -51,22 +52,44 @@ export function ImageUploader({
     setUploading(true);
 
     try {
-      // Convert to data URLs for preview (in a real app, we'd upload to Supabase here)
+      // Compress and convert to data URLs
+      const compressOptions = {
+        maxSizeMB: 2, // Compress to max 2MB
+        maxWidthOrHeight: 2000, // Max dimension 2000px
+        useWebWorker: true,
+        fileType: 'image/jpeg', // Convert to JPEG for better compression
+      };
+
       const urls = await Promise.all(
-        validFiles.map((file) => {
-          return new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
+        validFiles.map(async (file) => {
+          try {
+            // Compress the image
+            const compressedFile = await imageCompression(file, compressOptions);
+            
+            // Convert to base64
+            return new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(compressedFile);
+            });
+          } catch (error) {
+            console.error('Compression error:', error);
+            // Fallback to original file if compression fails
+            return new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+          }
         })
       );
 
       const newImages = [...images, ...urls];
       setImages(newImages);
       onImagesChange(newImages);
-      toast.success(`${validFiles.length} image(s) added`);
+      toast.success(`${validFiles.length} image(s) added and optimized`);
     } catch (error) {
       console.error('Error processing images:', error);
       toast.error('Failed to process images');

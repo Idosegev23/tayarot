@@ -1,5 +1,9 @@
 'use server';
 
+import { headers } from 'next/headers';
+import { checkRateLimit, getClientIdentifier, logRateLimitHit } from '@/lib/rateLimiter';
+import { isRateLimitingEnabled } from '@/lib/env';
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -11,6 +15,23 @@ export async function sendChatMessage(
   context?: { location?: string; hasPhotos?: boolean }
 ): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
+    // Rate limiting check
+    if (isRateLimitingEnabled()) {
+      const headersList = await headers();
+      const identifier = getClientIdentifier(headersList);
+      const rateLimitResult = await checkRateLimit(identifier, 'openai');
+      
+      // Log the hit (fire and forget)
+      logRateLimitHit(identifier, 'openai', rateLimitResult.allowed).catch(() => {});
+      
+      if (!rateLimitResult.allowed) {
+        return { 
+          success: false, 
+          error: rateLimitResult.error || 'Too many requests. Please try again later.' 
+        };
+      }
+    }
+    
     const apiKey = process.env.OPENAI_API_KEY;
     
     if (!apiKey) {

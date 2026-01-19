@@ -1,6 +1,11 @@
 'use server';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { headers } from 'next/headers';
+import { checkRateLimit, getClientIdentifier, logRateLimitHit } from '@/lib/rateLimiter';
+import { isRateLimitingEnabled } from '@/lib/env';
+import { trackCost, estimateGeminiCost } from '@/lib/costTracker';
+import { logger } from '@/lib/logger';
 
 interface GenerateImageParams {
   location: string;
@@ -17,6 +22,23 @@ export async function generateStyledImage({
   sourceImageUrl,
 }: GenerateImageParams & { sourceImageUrl: string }): Promise<{ success: boolean; imageData?: string; mimeType?: string; error?: string }> {
   try {
+    // Rate limiting check
+    if (isRateLimitingEnabled()) {
+      const headersList = await headers();
+      const identifier = getClientIdentifier(headersList);
+      const rateLimitResult = await checkRateLimit(identifier, 'gemini');
+      
+      // Log the hit (fire and forget)
+      logRateLimitHit(identifier, 'gemini', rateLimitResult.allowed).catch(() => {});
+      
+      if (!rateLimitResult.allowed) {
+        return { 
+          success: false, 
+          error: rateLimitResult.error || 'Too many image generation requests. Please try again later.' 
+        };
+      }
+    }
+    
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -168,6 +190,20 @@ FINAL OUTPUT: The user's original photo (cropped to square if needed) with clean
       const parts = candidates[0].content.parts;
       for (const part of parts) {
         if (part.inlineData) {
+          // Track cost (fire and forget)
+          const cost = estimateGeminiCost(1);
+          trackCost({
+            service: 'gemini',
+            imagesGenerated: 1,
+            estimatedCost: cost,
+          }).catch(() => {});
+          
+          logger.info('Image generated successfully', {
+            location,
+            style,
+            estimatedCost: cost,
+          });
+          
           return {
             success: true,
             imageData: part.inlineData.data,
