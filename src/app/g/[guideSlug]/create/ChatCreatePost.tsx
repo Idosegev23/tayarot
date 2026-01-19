@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/Button';
 import { ImageUploader } from '@/components/ImageUploader';
+import { ShareModal } from '@/components/ShareModal';
 import { toast } from '@/components/ui/Toast';
 import { LOCATIONS } from '@/lib/constants';
 import { createPost } from '@/app/actions/createPost';
 import { suggestBiblicalVerse, generateStyledImage } from '@/app/actions/generateImage';
 import { uploadGeneratedImage } from '@/app/actions/uploadGeneratedImage';
-import { ArrowLeft, Send, Loader2, Wand2, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Wand2, ImagePlus, Share2 } from 'lucide-react';
 import type { PostStyle } from '@/lib/types';
 
 interface ChatCreatePostProps {
@@ -33,6 +34,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [createdPostId, setCreatedPostId] = useState<string>('');
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -470,14 +472,23 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                 <div className="w-12 flex-shrink-0"></div>
                 <div className="flex-1 space-y-2">
                   <PrimaryButton
-                    onClick={() => router.push(`/g/${guideSlug}/post/${createdPostId}`)}
+                    onClick={() => setShowShareModal(true)}
                     fullWidth
                     size="lg"
                     className="bg-gradient-to-r from-warm to-accent hover:from-warm/90 hover:to-accent/90"
                   >
+                    <Share2 size={18} className="mr-2" />
+                    Share My Post
+                  </PrimaryButton>
+                  <SecondaryButton
+                    onClick={() => router.push(`/g/${guideSlug}/post/${createdPostId}`)}
+                    fullWidth
+                    size="md"
+                    className="border-warm text-warm hover:bg-warm/10"
+                  >
                     <Send size={18} className="mr-2" />
                     Submit for Publishing
-                  </PrimaryButton>
+                  </SecondaryButton>
                   <SecondaryButton
                     onClick={() => router.push(`/g/${guideSlug}`)}
                     fullWidth
@@ -491,6 +502,16 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
           </>
         )}
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        caption={experienceText}
+        hashtags={['#VisitIsrael', '#HolyLand']}
+        postUrl={createdPostId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/g/${guideSlug}/post/${createdPostId}` : undefined}
+        imageUrl={generatedImageUrl || images[0]}
+      />
     </div>
   );
 }

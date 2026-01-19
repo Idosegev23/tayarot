@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { toast } from '@/components/ui/Toast';
 import { updatePostStatus } from '@/app/actions/updatePostStatus';
 import { formatDate } from '@/lib/utils';
-import { FileText, Eye, Check, Send } from 'lucide-react';
+import { FileText, Eye, Check, Send, Facebook } from 'lucide-react';
 import type { Guide, Post, PostStatus } from '@/lib/types';
 
 interface GuideDashboardProps {
@@ -22,6 +22,19 @@ export function GuideDashboard({ guide, posts: initialPosts }: GuideDashboardPro
   const router = useRouter();
   const [posts, setPosts] = useState(initialPosts);
   const [statusFilter, setStatusFilter] = useState<PostStatus | 'all'>('all');
+
+  const handleShareToFacebook = (post: Post) => {
+    const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/g/${guide.slug}/post/${post.id}`;
+    const encodedUrl = encodeURIComponent(postUrl);
+    const caption = `${post.experience_text}\n\n📍 ${post.location_label}\n#VisitIsrael #HolyLand`;
+    const encodedCaption = encodeURIComponent(caption);
+    
+    // Facebook Share Dialog - works for both personal pages and guide pages
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedCaption}`;
+    window.open(facebookUrl, '_blank', 'width=600,height=400');
+    
+    toast.success('Opening Facebook to share...');
+  };
 
   const stats = {
     total: posts.length,
@@ -182,6 +195,17 @@ export function GuideDashboard({ guide, posts: initialPosts }: GuideDashboardPro
                       >
                         <Send size={16} />
                         Publish
+                      </Button>
+                    )}
+                    {post.status === 'published' && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleShareToFacebook(post)}
+                        className="gap-1 bg-[#1877f2] hover:bg-[#1877f2]/90"
+                      >
+                        <Facebook size={16} />
+                        Share to Facebook
                       </Button>
                     )}
                     <Button
