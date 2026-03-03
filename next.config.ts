@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
           // Permissions policy
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(), geolocation=(self)',
           },
           // XSS Protection (legacy browsers)
           {

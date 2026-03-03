@@ -1,109 +1,66 @@
-'use client';
-
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-import { AppHeader } from '@/components/ui/AppHeader';
-import { Card } from '@/components/ui/Card';
-import { SecondaryButton } from '@/components/ui/Button';
-import { PostPreview } from '@/components/PostPreview';
-import { LoadingState } from '@/components/LoadingState';
-import { toast } from '@/components/ui/Toast';
-import { createClient } from '@/lib/supabase/client';
+import { notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { APP_CONFIG } from '@/lib/constants';
-import type { Post } from '@/lib/types';
+import { PostView } from './PostView';
+import type { Metadata } from 'next';
 
 interface PageProps {
   params: Promise<{ guideSlug: string; postId: string }>;
 }
 
-export default function PostPreviewPage({ params }: PageProps) {
-  const { postId } = use(params);
-  const router = useRouter();
-  const [post, setPost] = useState<Post | null>(null);
-  const [loading, setLoading] = useState(true);
+async function getPost(postId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, guide:guides(*)')
+    .eq('id', postId)
+    .single();
 
-  useEffect(() => {
-    fetchPost();
-  }, [postId]);
+  if (error || !data) return null;
+  return data;
+}
 
-  const fetchPost = async () => {
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*, guide:guides(*)')
-        .eq('id', postId)
-        .single();
-
-      if (error || !data) {
-        toast.error('Post not found');
-        return;
-      }
-
-      setPost(data);
-    } catch (error) {
-      console.error('Fetch post error:', error);
-      toast.error('Failed to load post');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <AppHeader showBadge />
-        <LoadingState text="Loading post..." />
-      </div>
-    );
-  }
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { postId } = await params;
+  const post = await getPost(postId);
 
   if (!post) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <AppHeader showBadge />
-        <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Post Not Found</h2>
-          <p className="text-gray-600 mb-6">The post you're looking for doesn't exist.</p>
-          <SecondaryButton onClick={() => router.back()}>
-            Go Back
-          </SecondaryButton>
-        </div>
-      </div>
-    );
+    return { title: 'Post Not Found' };
   }
 
-  const caption = post.experience_text;
+  const title = `${post.location_label} — ${post.guide?.display_name || 'Agent Mary'}`;
+  const description = post.experience_text?.slice(0, 160) || 'A travel experience shared via Agent Mary';
+
+  // Use generated image URL if available (not base64)
+  const ogImage = post.images?.[0]?.startsWith('http') ? post.images[0] : undefined;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      ...(ogImage && { images: [{ url: ogImage, width: 1080, height: 1080 }] }),
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title,
+      description,
+      ...(ogImage && { images: [ogImage] }),
+    },
+  };
+}
+
+export default async function PostPreviewPage({ params }: PageProps) {
+  const { guideSlug, postId } = await params;
+  const post = await getPost(postId);
+
+  if (!post) {
+    notFound();
+  }
+
   const hashtags = APP_CONFIG.defaultHashtags;
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      <AppHeader guideName={post.guide?.display_name} showBadge />
-
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <Card>
-          <PostPreview post={post} hashtags={hashtags} />
-        </Card>
-
-        {/* Status Info */}
-        <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-center">
-          <p className="text-blue-700 text-sm">
-            Post Status: <span className="font-semibold capitalize">{post.status}</span>
-          </p>
-          {post.status === 'published' && (
-            <p className="text-blue-600 text-xs mt-1">
-              This post has been published to the guide's page
-            </p>
-          )}
-        </div>
-
-        {/* Back Button */}
-        <div className="mt-6">
-          <SecondaryButton onClick={() => router.back()} fullWidth>
-            Go Back
-          </SecondaryButton>
-        </div>
-      </div>
-    </div>
-  );
+  return <PostView post={post} hashtags={hashtags} guideSlug={guideSlug} />;
 }

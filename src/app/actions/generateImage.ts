@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { headers } from 'next/headers';
 import { checkRateLimit, getClientIdentifier, logRateLimitHit } from '@/lib/rateLimiter';
 import { isRateLimitingEnabled } from '@/lib/env';
-import { trackCost, estimateGeminiCost } from '@/lib/costTracker';
+import { trackCost, estimateGeminiCost, checkBudgetBeforeCall } from '@/lib/costTracker';
 import { logger } from '@/lib/logger';
 
 interface GenerateImageParams {
@@ -12,6 +12,12 @@ interface GenerateImageParams {
   experience: string;
   style: 'regular' | 'holy_land';
   biblicalVerse?: string;
+  overlays?: {
+    locationTag: boolean;
+    verse: boolean;
+    experienceText: boolean;
+    dateStamp: boolean;
+  };
 }
 
 export async function generateStyledImage({
@@ -20,6 +26,7 @@ export async function generateStyledImage({
   style,
   biblicalVerse,
   sourceImageUrl,
+  overlays,
 }: GenerateImageParams & { sourceImageUrl: string }): Promise<{ success: boolean; imageData?: string; mimeType?: string; error?: string }> {
   try {
     // Rate limiting check
@@ -39,112 +46,136 @@ export async function generateStyledImage({
       }
     }
     
+    // Budget pre-check
+    const budgetCheck = await checkBudgetBeforeCall('gemini', estimateGeminiCost(1));
+    if (!budgetCheck.allowed) {
+      return { success: false, error: budgetCheck.error || 'Budget limit reached. Please try again later.' };
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return { success: false, error: 'Gemini API key not configured' };
     }
 
-    // Fetch the source image
-    const imageResponse = await fetch(sourceImageUrl);
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-    const imageMimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    // Parse the source image (supports both data URLs and regular URLs)
+    let imageBase64: string;
+    let imageMimeType: string;
+
+    if (sourceImageUrl.startsWith('data:')) {
+      // Parse base64 data URL directly (sent from client)
+      const match = sourceImageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) {
+        return { success: false, error: 'Invalid image data URL format' };
+      }
+      imageMimeType = match[1];
+      imageBase64 = match[2];
+    } else {
+      // Fetch from regular URL with timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15_000);
+      try {
+        const imageResponse = await fetch(sourceImageUrl, { signal: controller.signal });
+        const imageBuffer = await imageResponse.arrayBuffer();
+        imageBase64 = Buffer.from(imageBuffer).toString('base64');
+        imageMimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use Nano Banana Pro model for professional image editing
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-3-pro-image-preview',
+    // Use Nano Banana 2 (Gemini 3.1 Flash Image) for image editing
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.1-flash-image-preview',
       systemInstruction: 'You are a photo editor, not an image generator. Your task is to edit existing photos by cropping them and adding text overlays. You must NEVER generate new images or modify the original photo content. Only crop and add text.'
     });
 
-    // Create a detailed JSON prompt based on style - optimized for Nano Banana Pro
-    let promptConfig: any;
-    
-    if (style === 'holy_land') {
-      promptConfig = {
-        "editing_mode": "PHOTO EDITING ONLY - Preserve original photo completely",
-        "task": "Crop to 1:1 square and add text overlay ONLY - NO image generation, NO filters, NO effects",
-        "original_photo": `User's actual travel photo from ${location} - DO NOT recreate or modify this photo`,
-        "aspect_ratio": "Center-crop to 1:1 square (1080x1080px) if not already square",
-        "art_style": "Clean text overlay on the UNMODIFIED original photo, professional typography only",
-        "text_elements": [
-          {
-            "content": location.toUpperCase(),
-            "position": "top 20% of image",
-            "font": "elegant serif (Playfair Display style)",
-            "size": "extra large, prominent",
-            "color": "pure white (#FFFFFF)",
-            "effects": "strong dark shadow for contrast, semi-transparent dark gradient behind text",
-            "alignment": "center"
-          },
-          {
-            "content": experience,
-            "position": "center 40-60% of image",
-            "font": "clean sans-serif (Inter or Helvetica style)",
-            "size": "medium, readable on mobile",
-            "color": "pure white (#FFFFFF)",
-            "effects": "dark shadow, semi-transparent gradient for readability",
-            "alignment": "center",
-            "max_lines": 2
-          },
-          {
-            "content": `"${biblicalVerse || 'Verse text here'}"`,
-            "position": "bottom 20% of image",
-            "font": "elegant italic serif with quotation marks",
-            "size": "small to medium",
-            "color": "WARM GOLD (#EBB877) - CRITICAL: MUST BE GOLD COLOR",
-            "effects": "subtle shadow, gentle gradient behind",
-            "alignment": "center",
-            "style_note": "Include opening and closing quotation marks"
-          }
-        ],
-        "lighting": "maintain original photo lighting, add subtle dark gradients behind text areas only for readability",
-        "composition": "preserve original photo composition, text overlay must not obscure main photo subjects",
-        "technical_details": "high resolution, crisp typography, perfect text rendering, mobile-optimized",
-        "mood": "spiritual, inspiring, professional",
-        "critical_requirements": [
-          "ALL THREE text elements MUST appear on the image",
-          "Biblical verse MUST be in GOLD color (#EBB877), not white",
-          "Keep original photo unmodified - only add text overlay",
-          "Text must be large enough to read on mobile devices",
-          "Use semi-transparent dark gradients behind text for readability"
-        ]
-      };
-    } else {
-      promptConfig = {
-        "editing_mode": "PHOTO EDITING ONLY - Preserve original photo completely",
-        "task": "Crop to 1:1 square and add text overlay ONLY - NO image generation, NO filters, NO effects",
-        "original_photo": `User's actual travel photo from ${location} - DO NOT recreate or modify this photo`,
-        "aspect_ratio": "Center-crop to 1:1 square (1080x1080px) if not already square",
-        "art_style": "Clean text overlay on the UNMODIFIED original photo, modern typography only",
-        "text_elements": [
-          {
-            "content": location.toUpperCase(),
-            "position": "top of image",
-            "font": "bold modern sans-serif (Montserrat Bold style)",
-            "size": "large and bold",
-            "color": "pure white (#FFFFFF)",
-            "effects": "strong shadow",
-            "alignment": "center"
-          },
-          {
-            "content": experience,
-            "position": "center of image",
-            "font": "clean sans-serif (Inter style)",
-            "size": "medium",
-            "color": "pure white (#FFFFFF)",
-            "effects": "shadow for readability",
-            "alignment": "center"
-          }
-        ],
-        "lighting": "maintain original photo lighting, minimal dark overlays for text",
-        "composition": "preserve original photo, text overlay only",
-        "technical_details": "high resolution, professional typography, mobile-optimized",
-        "mood": "modern, vibrant, energetic"
-      };
+    // Build dynamic text elements based on overlay config
+    const overlayConfig = overlays ?? {
+      locationTag: true,
+      verse: style === 'holy_land',
+      experienceText: true,
+      dateStamp: false,
+    };
+
+    const textElements: Record<string, string>[] = [];
+
+    if (overlayConfig.locationTag) {
+      textElements.push({
+        "content": location.toUpperCase(),
+        "position": "top-left corner, 10-15% from top and left edge",
+        "font": "clean sans-serif (Inter or Helvetica style)",
+        "size": "medium, readable on mobile",
+        "color": "pure white (#FFFFFF)",
+        "effects": "semi-transparent dark pill badge behind text, map pin icon before text",
+        "alignment": "left",
+        "style_note": "Instagram-style location tag with pin icon"
+      });
     }
-    
+
+    if (overlayConfig.experienceText) {
+      textElements.push({
+        "content": experience,
+        "position": "center 40-60% of image",
+        "font": "clean sans-serif (Inter or Helvetica style)",
+        "size": "medium, readable on mobile",
+        "color": "pure white (#FFFFFF)",
+        "effects": "dark shadow, semi-transparent gradient for readability",
+        "alignment": "center",
+        "max_lines": "3"
+      });
+    }
+
+    if (overlayConfig.verse && biblicalVerse) {
+      textElements.push({
+        "content": `"${biblicalVerse}"`,
+        "position": "bottom 15-20% of image",
+        "font": "elegant italic serif with quotation marks",
+        "size": "small to medium",
+        "color": "WARM GOLD (#EBB877) - CRITICAL: MUST BE GOLD COLOR",
+        "effects": "subtle shadow, gentle gradient behind",
+        "alignment": "center",
+        "style_note": "Include opening and closing quotation marks"
+      });
+    }
+
+    if (overlayConfig.dateStamp) {
+      const dateStr = new Date().toLocaleDateString('en-US', {
+        month: 'long', day: 'numeric', year: 'numeric'
+      });
+      textElements.push({
+        "content": dateStr,
+        "position": "top-right corner, small camera-style stamp",
+        "font": "monospace or condensed sans-serif",
+        "size": "small, subtle",
+        "color": "white (#FFFFFF) at 90% opacity",
+        "effects": "small semi-transparent dark background pill",
+        "alignment": "right"
+      });
+    }
+
+    const promptConfig = {
+      "editing_mode": "PHOTO EDITING ONLY - Preserve original photo completely",
+      "task": textElements.length > 0
+        ? "Crop to 1:1 square and add text overlay ONLY - NO image generation, NO filters, NO effects"
+        : "Crop to 1:1 square ONLY - NO text, NO overlay, NO modifications",
+      "original_photo": `User's actual travel photo from ${location} - DO NOT recreate or modify this photo`,
+      "aspect_ratio": "Center-crop to 1:1 square (1080x1080px) if not already square",
+      "text_elements": textElements,
+      "lighting": "maintain original photo lighting, add dark gradients behind text for readability",
+      "composition": "preserve original photo, text overlay only",
+      "technical_details": "high resolution, crisp typography, mobile-optimized",
+      "mood": overlayConfig.verse ? "spiritual, inspiring, professional" : "modern, vibrant, energetic",
+      "critical_requirements": [
+        `Exactly ${textElements.length} text element(s) must appear`,
+        overlayConfig.verse ? "Biblical verse MUST be in GOLD color (#EBB877), not white" : null,
+        "Keep original photo unmodified - only add text overlay",
+        "Text must be large enough to read on mobile devices",
+        "Use semi-transparent dark gradients behind text for readability"
+      ].filter(Boolean)
+    };
+
     const prompt = `⚠️ PHOTO EDITING MODE - NOT IMAGE GENERATION ⚠️
 
 THIS IS THE USER'S ORIGINAL PHOTO. YOU ARE EDITING IT, NOT CREATING A NEW ONE.
@@ -152,8 +183,7 @@ THIS IS THE USER'S ORIGINAL PHOTO. YOU ARE EDITING IT, NOT CREATING A NEW ONE.
 TASK BREAKDOWN:
 Step 1: Take this exact photo as-is
 Step 2: If not square → crop to 1:1 (center crop, 1080x1080px)
-Step 3: Add text overlay with specified typography
-Step 4: Return the result
+${textElements.length > 0 ? 'Step 3: Add text overlay with specified typography\nStep 4: Return the result' : 'Step 3: Return the cropped result'}
 
 CRITICAL RULES:
 🚫 NEVER generate/create/synthesize a new background image
@@ -162,15 +192,14 @@ CRITICAL RULES:
 🚫 NEVER redraw or recreate anything in the photo
 
 ✅ DO crop the photo to square (if needed)
-✅ DO add text overlay on top of the cropped photo
-✅ DO add subtle gradients behind text for readability only
+${textElements.length > 0 ? '✅ DO add text overlay on top of the cropped photo\n✅ DO add subtle gradients behind text for readability only' : '✅ DO NOT add any text or overlays'}
 
-The background photo MUST remain 100% identical to the input - only cropping and text overlay are allowed.
+The background photo MUST remain 100% identical to the input - only cropping${textElements.length > 0 ? ' and text overlay are' : ' is'} allowed.
 
 TEXT OVERLAY SPECIFICATIONS:
 ${JSON.stringify(promptConfig, null, 2)}
 
-FINAL OUTPUT: The user's original photo (cropped to square if needed) with clean text overlay. The photo itself should be completely unmodified.`;
+FINAL OUTPUT: The user's original photo (cropped to square if needed)${textElements.length > 0 ? ' with clean text overlay' : ''}. The photo itself should be completely unmodified.`;
 
     const result = await model.generateContent([
       {
@@ -237,7 +266,7 @@ export async function generateImagePrompt({
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const promptRequest = `Generate a beautiful text overlay design concept for a travel photo post.
 
@@ -280,7 +309,7 @@ export async function suggestBiblicalVerse(
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `Suggest ONE SHORT biblical verse from the Hebrew Bible (Tanakh/Old Testament ONLY) that connects to this travel experience in the Holy Land.
 

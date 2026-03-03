@@ -1,6 +1,11 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { validateAccess } from '@/lib/supabase/access';
 import { AdminDashboard } from './AdminDashboard';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 interface PageProps {
   searchParams: Promise<{ k?: string }>;
@@ -34,6 +39,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
 
   return (
     <AdminDashboard
+      accessKey={accessKey || ''}
       guides={guidesRes.data || []}
       accessKeys={keysRes.data || []}
       settings={settingsRes.data || {

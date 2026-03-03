@@ -42,17 +42,19 @@ export function Chip({
 }
 
 interface StatusChipProps {
-  status: 'draft' | 'approved' | 'published';
+  status: 'draft' | 'pending' | 'approved' | 'published' | 'rejected';
 }
 
 export function StatusChip({ status }: StatusChipProps) {
-  const variants = {
-    draft: { variant: 'default' as const, label: 'Draft' },
-    approved: { variant: 'secondary' as const, label: 'Approved' },
-    published: { variant: 'success' as const, label: 'Published' },
+  const variants: Record<string, { variant: 'default' | 'secondary' | 'success' | 'warning'; label: string }> = {
+    draft: { variant: 'default', label: 'Draft' },
+    pending: { variant: 'warning', label: 'Pending' },
+    approved: { variant: 'secondary', label: 'Approved' },
+    published: { variant: 'success', label: 'Published' },
+    rejected: { variant: 'default', label: 'Rejected' },
   };
 
-  const { variant, label } = variants[status];
+  const { variant, label } = variants[status] || { variant: 'default' as const, label: status };
 
   return <Chip variant={variant}>{label}</Chip>;
 }

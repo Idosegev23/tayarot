@@ -1,13 +1,28 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { validateAccess } from '@/lib/supabase/access';
 import { generateAccessKey } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { BIBLICAL_VERSES } from '@/lib/constants';
 import type { AccessRole } from '@/lib/types';
 
+async function requireAdmin(accessKey: string): Promise<{ valid: boolean; error?: string }> {
+  if (!accessKey) return { valid: false, error: 'Access key is required' };
+  const result = await validateAccess(accessKey, 'admin');
+  if (!result.valid) {
+    logger.warn('Unauthorized admin action attempt', { error: result.error });
+    return { valid: false, error: 'Unauthorized' };
+  }
+  return { valid: true };
+}
+
 // Guide Actions
-export async function createGuide(slug: string, displayName: string) {
+export async function createGuide(accessKey: string, slug: string, displayName: string) {
   try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -28,8 +43,11 @@ export async function createGuide(slug: string, displayName: string) {
   }
 }
 
-export async function updateGuide(id: string, displayName: string) {
+export async function updateGuide(accessKey: string, id: string, displayName: string) {
   try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
     const supabase = await createClient();
 
     const { error } = await supabase
@@ -50,8 +68,11 @@ export async function updateGuide(id: string, displayName: string) {
 }
 
 // Access Key Actions
-export async function createAccessKey(role: AccessRole, guideId: string | null, label: string) {
+export async function createAccessKey(accessKey: string, role: AccessRole, guideId: string | null, label: string) {
   try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
     const supabase = await createClient();
     const key = generateAccessKey();
 
@@ -79,8 +100,11 @@ export async function createAccessKey(role: AccessRole, guideId: string | null, 
   }
 }
 
-export async function toggleKeyActive(id: string, active: boolean) {
+export async function toggleKeyActive(accessKey: string, id: string, active: boolean) {
   try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
     const supabase = await createClient();
 
     const { error } = await supabase
@@ -102,12 +126,16 @@ export async function toggleKeyActive(id: string, active: boolean) {
 
 // Settings Actions
 export async function updateSettings(
+  accessKey: string,
   hashtags: string[],
   verseModeEnabled: boolean,
   maxImagesPerPost: number,
   demoBannerText: string
 ) {
   try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
     const supabase = await createClient();
 
     // Get existing settings
@@ -144,8 +172,11 @@ export async function updateSettings(
 }
 
 // Seed Data Action
-export async function seedDemoData() {
+export async function seedDemoData(accessKey: string) {
   try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
     const supabase = await createClient();
 
     // Create guides
@@ -236,8 +267,11 @@ export async function seedDemoData() {
   }
 }
 
-export async function clearAllData() {
+export async function clearAllData(accessKey: string) {
   try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
     const supabase = await createClient();
 
     // Delete in order: posts, access_keys, guides

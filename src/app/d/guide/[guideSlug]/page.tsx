@@ -1,7 +1,12 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { validateAccess } from '@/lib/supabase/access';
 import { notFound, redirect } from 'next/navigation';
 import { GuideDashboard } from './GuideDashboard';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 interface PageProps {
   params: Promise<{ guideSlug: string }>;
@@ -45,5 +50,5 @@ export default async function GuideDashboardPage({ params, searchParams }: PageP
     .eq('guide_id', guide.id)
     .order('created_at', { ascending: false });
 
-  return <GuideDashboard guide={guide} posts={posts || []} />;
+  return <GuideDashboard guide={guide} posts={posts || []} accessKey={accessKey || ''} />;
 }

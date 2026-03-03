@@ -195,6 +195,51 @@ export async function getSpendingSummary(
 }
 
 /**
+ * Check budget BEFORE making an API call.
+ * Returns whether the call is allowed based on current spending.
+ */
+export async function checkBudgetBeforeCall(
+  service: AIService,
+  estimatedCost: number
+): Promise<{ allowed: boolean; remaining?: number; error?: string }> {
+  try {
+    const status = await getBudgetStatus();
+
+    if (status.daily.remaining < estimatedCost) {
+      logger.warn('Budget pre-check blocked request', {
+        service,
+        estimatedCost,
+        dailyRemaining: status.daily.remaining,
+      });
+      return {
+        allowed: false,
+        remaining: status.daily.remaining,
+        error: `Daily budget limit reached. Remaining: $${status.daily.remaining.toFixed(2)}`,
+      };
+    }
+
+    if (status.weekly.remaining < estimatedCost) {
+      logger.warn('Budget pre-check blocked request (weekly)', {
+        service,
+        estimatedCost,
+        weeklyRemaining: status.weekly.remaining,
+      });
+      return {
+        allowed: false,
+        remaining: status.weekly.remaining,
+        error: `Weekly budget limit reached. Remaining: $${status.weekly.remaining.toFixed(2)}`,
+      };
+    }
+
+    return { allowed: true, remaining: status.daily.remaining };
+  } catch (error) {
+    logger.error('Budget pre-check failed', error as Error, { service });
+    // Allow on error — don't block users if cost tracking DB is down
+    return { allowed: true };
+  }
+}
+
+/**
  * Get budget status
  */
 export async function getBudgetStatus(): Promise<{

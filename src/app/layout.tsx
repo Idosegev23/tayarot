@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "./",
+    url: "/",
     title: "Agent Mary - Your Holy Land Journey Companion",
     description: "Share your Holy Land journey with AI-powered post creation and biblical verses",
     siteName: "Agent Mary",

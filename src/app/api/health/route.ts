@@ -64,13 +64,13 @@ async function checkStorage(): Promise<HealthCheck> {
   const start = Date.now();
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.storage.getBucket('agent-mary');
-    
-    if (error || !data) {
+    const { data, error } = await supabase.storage.from('agent-mary').list('', { limit: 1 });
+
+    if (error) {
       return {
         service: 'storage',
         status: 'unhealthy',
-        message: `Storage error: ${error?.message || 'Bucket not found'}`,
+        message: `Storage error: ${error.message}`,
         responseTime: Date.now() - start,
       };
     }

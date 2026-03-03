@@ -14,6 +14,8 @@ interface CreatePostData {
   images: string[];
   biblicalVerse?: string;
   verseReference?: string;
+  coordinates?: { lat: number; lng: number };
+  touristSessionId?: string;
 }
 
 export async function createPost(data: CreatePostData) {
@@ -53,6 +55,9 @@ export async function createPost(data: CreatePostData) {
       status: 'draft' as const,
       biblical_verse: data.biblicalVerse || null,
       verse_reference: data.verseReference || null,
+      location_lat: data.coordinates?.lat || null,
+      location_lng: data.coordinates?.lng || null,
+      tourist_session_id: data.touristSessionId || null,
     };
 
     const { data: post, error: postError } = await supabase

@@ -78,6 +78,9 @@ export function ShareModal({ isOpen, onClose, caption, hashtags, postUrl, imageU
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Share your experience"
     >
       <div
         className={cn(
@@ -91,7 +94,8 @@ export function ShareModal({ isOpen, onClose, caption, hashtags, postUrl, imageU
           <h2 className="text-lg font-semibold">Share Your Experience</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex items-center justify-center w-11 h-11 text-gray-500 hover:text-gray-700 transition-colors rounded-full hover:bg-gray-100"
+            aria-label="Close share dialog"
           >
             <X size={24} />
           </button>

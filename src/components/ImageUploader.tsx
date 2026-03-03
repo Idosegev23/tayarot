@@ -2,26 +2,31 @@
 
 import { useState, useRef, ChangeEvent, DragEvent } from 'react';
 import Image from 'next/image';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from './ui/Toast';
 import imageCompression from 'browser-image-compression';
+import { extractExifGps } from '@/lib/geolocation';
+import type { GeoCoordinates } from '@/lib/types';
 
 interface ImageUploaderProps {
   maxImages?: number;
   onImagesChange: (urls: string[]) => void;
+  onExifGps?: (coords: GeoCoordinates) => void;
   existingImages?: string[];
 }
 
 export function ImageUploader({
   maxImages = 5,
   onImagesChange,
+  onExifGps,
   existingImages = [],
 }: ImageUploaderProps) {
   const [images, setImages] = useState<string[]>(existingImages);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -52,6 +57,22 @@ export function ImageUploader({
     setUploading(true);
 
     try {
+      // Extract EXIF GPS from the first image before compression strips it
+      if (onExifGps) {
+        for (const file of validFiles) {
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            const gps = extractExifGps(arrayBuffer);
+            if (gps) {
+              onExifGps(gps);
+              break; // Only need GPS from one image
+            }
+          } catch {
+            // EXIF extraction is best-effort
+          }
+        }
+      }
+
       // Compress and convert to data URLs
       const compressOptions = {
         maxSizeMB: 2, // Compress to max 2MB
@@ -134,48 +155,65 @@ export function ImageUploader({
     <div className="space-y-4">
       {/* Upload Area */}
       {images.length < maxImages && (
-        <div
-          className={cn(
-            'relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
-            dragActive
-              ? 'border-primary bg-primary/5'
-              : 'border-gray-300 hover:border-primary hover:bg-gray-50',
-            uploading && 'opacity-50 pointer-events-none'
-          )}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          onClick={openFileDialog}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleChange}
-            className="hidden"
-          />
+        <div className="space-y-2">
+          <div
+            className={cn(
+              'relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
+              dragActive
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-300 hover:border-primary hover:bg-gray-50',
+              uploading && 'opacity-50 pointer-events-none'
+            )}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={openFileDialog}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleChange}
+              className="hidden"
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleChange}
+              className="hidden"
+            />
 
-          {uploading ? (
-            <div className="flex flex-col items-center">
-              <Loader2 className="w-12 h-12 text-primary animate-spin" />
-              <p className="mt-4 text-gray-600">Processing images...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <Upload className="w-12 h-12 text-gray-400" />
-              <p className="mt-4 text-gray-700 font-medium">
-                Drag & drop or click to upload
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                Up to {maxImages} images, max 5MB each
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                {images.length} / {maxImages} images added
-              </p>
-            </div>
-          )}
+            {uploading ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                <p className="mt-4 text-gray-600">Processing image...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <Upload className="w-12 h-12 text-gray-400" />
+                <p className="mt-4 text-gray-700 font-medium">
+                  {maxImages === 1 ? 'Tap to upload your photo' : 'Drag & drop or click to upload'}
+                </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {maxImages === 1 ? 'Max 5MB' : `Up to ${maxImages} images, max 5MB each`}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Camera button — visible on mobile */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+            disabled={uploading}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium sm:hidden"
+          >
+            <Camera size={18} />
+            Take a Photo
+          </button>
         </div>
       )}
 
@@ -195,7 +233,7 @@ export function ImageUploader({
               />
               <button
                 onClick={() => removeImage(index)}
-                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                className="absolute top-1 right-1 bg-red-500 text-white w-8 h-8 flex items-center justify-center rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-red-600"
                 aria-label="Remove image"
               >
                 <X size={16} />

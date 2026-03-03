@@ -25,7 +25,7 @@ export function TourismDashboard({ posts, guides }: TourismDashboardProps) {
   // Calculate stats
   const totalPosts = posts.length;
   const totalGuides = guides.length;
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [oneWeekAgo] = useState(() => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const publishedThisWeek = posts.filter(
     (p) => p.status === 'published' && new Date(p.created_at) > oneWeekAgo
   ).length;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -10,18 +10,48 @@ import { EmptyState } from '@/components/EmptyState';
 import { toast } from '@/components/ui/Toast';
 import { updatePostStatus } from '@/app/actions/updatePostStatus';
 import { formatDate } from '@/lib/utils';
-import { FileText, Eye, Check, Send, Facebook } from 'lucide-react';
+import { FileText, Eye, Check, Send, Facebook, RefreshCw } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import type { Guide, Post, PostStatus } from '@/lib/types';
 
 interface GuideDashboardProps {
   guide: Guide;
   posts: Post[];
+  accessKey: string;
 }
 
-export function GuideDashboard({ guide, posts: initialPosts }: GuideDashboardProps) {
+export function GuideDashboard({ guide, posts: initialPosts, accessKey }: GuideDashboardProps) {
   const router = useRouter();
   const [posts, setPosts] = useState(initialPosts);
   const [statusFilter, setStatusFilter] = useState<PostStatus | 'all'>('all');
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+
+  const fetchLatestPosts = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('posts')
+        .select('*, guide:guides(*)')
+        .eq('guide_id', guide.id)
+        .order('created_at', { ascending: false });
+
+      if (data && data.length !== posts.length) {
+        setNewPostsAvailable(true);
+      }
+      if (data) {
+        setPosts(data);
+        setNewPostsAvailable(false);
+      }
+    } catch {
+      // Silently fail — don't disrupt the dashboard
+    }
+  }, [guide.id, posts.length]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    const interval = setInterval(fetchLatestPosts, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchLatestPosts]);
 
   const handleShareToFacebook = (post: Post) => {
     const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/g/${guide.slug}/post/${post.id}`;
@@ -47,7 +77,7 @@ export function GuideDashboard({ guide, posts: initialPosts }: GuideDashboardPro
 
   const handleStatusUpdate = async (postId: string, newStatus: PostStatus) => {
     try {
-      const result = await updatePostStatus(postId, newStatus);
+      const result = await updatePostStatus(postId, newStatus, accessKey);
 
       if (result.success) {
         setPosts(posts.map((p) => (p.id === postId ? { ...p, status: newStatus } : p)));
@@ -66,8 +96,15 @@ export function GuideDashboard({ guide, posts: initialPosts }: GuideDashboardPro
     <div className="min-h-screen bg-gray-50">
       {/* Header Banner */}
       <div className="bg-primary text-white px-4 py-3">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <p className="text-sm font-medium">Demo Access: Guide - {guide.display_name}</p>
+          <button
+            onClick={fetchLatestPosts}
+            className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors"
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -150,12 +187,21 @@ export function GuideDashboard({ guide, posts: initialPosts }: GuideDashboardPro
                   {/* Thumbnail */}
                   {post.images[0] && (
                     <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                      <Image
-                        src={post.images[0]}
-                        alt="Post thumbnail"
-                        fill
-                        className="object-cover"
-                      />
+                      {post.images[0].startsWith('data:') ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={post.images[0]}
+                          alt="Post thumbnail"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Image
+                          src={post.images[0]}
+                          alt="Post thumbnail"
+                          fill
+                          className="object-cover"
+                        />
+                      )}
                     </div>
                   )}
 

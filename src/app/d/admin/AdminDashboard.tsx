@@ -21,6 +21,7 @@ import { Plus, Edit, Copy, Database, Trash2, Settings as SettingsIcon } from 'lu
 import type { Guide, AccessKey, AppSettings, AccessRole } from '@/lib/types';
 
 interface AdminDashboardProps {
+  accessKey: string;
   guides: (Guide & { posts?: { count: number }[] })[];
   accessKeys: AccessKey[];
   settings: AppSettings;
@@ -28,7 +29,7 @@ interface AdminDashboardProps {
 
 type Tab = 'guides' | 'keys' | 'settings' | 'seed';
 
-export function AdminDashboard({ guides: initialGuides, accessKeys: initialKeys, settings: initialSettings }: AdminDashboardProps) {
+export function AdminDashboard({ accessKey, guides: initialGuides, accessKeys: initialKeys, settings: initialSettings }: AdminDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('guides');
   const [guides, setGuides] = useState(initialGuides);
@@ -58,8 +59,8 @@ export function AdminDashboard({ guides: initialGuides, accessKeys: initialKeys,
     }
 
     const result = guideFormData.id
-      ? await updateGuide(guideFormData.id, guideFormData.displayName)
-      : await createGuide(guideFormData.slug, guideFormData.displayName);
+      ? await updateGuide(accessKey, guideFormData.id, guideFormData.displayName)
+      : await createGuide(accessKey, guideFormData.slug, guideFormData.displayName);
 
     if (result.success) {
       toast.success(guideFormData.id ? 'Guide updated!' : 'Guide created!');
@@ -84,6 +85,7 @@ export function AdminDashboard({ guides: initialGuides, accessKeys: initialKeys,
     }
 
     const result = await createAccessKey(
+      accessKey,
       keyFormData.role,
       keyFormData.role === 'guide' ? keyFormData.guideId : null,
       keyFormData.label
@@ -113,7 +115,7 @@ export function AdminDashboard({ guides: initialGuides, accessKeys: initialKeys,
   };
 
   const handleToggleKey = async (id: string, active: boolean) => {
-    const result = await toggleKeyActive(id, !active);
+    const result = await toggleKeyActive(accessKey, id, !active);
     if (result.success) {
       toast.success(`Key ${!active ? 'activated' : 'deactivated'}`);
       router.refresh();
@@ -130,6 +132,7 @@ export function AdminDashboard({ guides: initialGuides, accessKeys: initialKeys,
       .filter((h) => h.length > 0);
 
     const result = await updateSettings(
+      accessKey,
       hashtagsArray,
       settingsData.verseModeEnabled,
       settingsData.maxImagesPerPost,
@@ -147,7 +150,7 @@ export function AdminDashboard({ guides: initialGuides, accessKeys: initialKeys,
   // Seed Actions
   const handleSeedData = async () => {
     const toastId = toast.loading('Seeding demo data...');
-    const result = await seedDemoData();
+    const result = await seedDemoData(accessKey);
     toast.dismiss(toastId);
 
     if (result.success) {
@@ -164,7 +167,7 @@ export function AdminDashboard({ guides: initialGuides, accessKeys: initialKeys,
     }
 
     const toastId = toast.loading('Clearing all data...');
-    const result = await clearAllData();
+    const result = await clearAllData(accessKey);
     toast.dismiss(toastId);
 
     if (result.success) {

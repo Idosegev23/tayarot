@@ -3,9 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
-import { PrimaryButton, SecondaryButton } from '@/components/ui/Button';
+import { SecondaryButton } from '@/components/ui/Button';
 import { sendChatMessage } from '@/app/actions/chat';
-import { Send, Camera, Loader2, Plus } from 'lucide-react';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { buildLocationContext } from '@/lib/geolocation';
+import { Send, Camera, Loader2, MapPin, Images, FileText } from 'lucide-react';
+import Link from 'next/link';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -22,12 +25,15 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hi! 👋 I'm Mary, your virtual Israel guide. I'm here to help you get the most out of your journey. How is your trip going?",
+      content: "Hi! I'm Mary, your virtual Israel guide. I'm here to help you get the most out of your journey. How is your trip going?",
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [locationGreetingSent, setLocationGreetingSent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { coords, nearestLocation, status: geoStatus, requestPermission } = useGeolocation();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,18 +43,41 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Send a location-aware greeting when GPS first resolves
+  useEffect(() => {
+    if (nearestLocation && !locationGreetingSent && messages.length <= 2) {
+      setLocationGreetingSent(true);
+      const locName = nearestLocation.poi
+        ? `${nearestLocation.poi.name} in ${nearestLocation.location.name}`
+        : nearestLocation.location.name;
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `I can see you're near ${locName}! What a wonderful place to be. Want me to tell you about what's special here?`,
+        },
+      ]);
+    }
+  }, [nearestLocation, locationGreetingSent, messages.length]);
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
     const userMessage = input.trim();
     setInput('');
-    
+
     const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
     setLoading(true);
 
     try {
-      const result = await sendChatMessage(newMessages, guideSlug);
+      const locationContext = buildLocationContext(coords, nearestLocation, null);
+      const result = await sendChatMessage(newMessages, guideSlug, {
+        location: nearestLocation?.location.name || undefined,
+        hasPhotos: false,
+        locationContext: locationContext || undefined,
+        coordinates: coords ? { lat: coords.lat, lng: coords.lng } : undefined,
+      });
 
       if (result.success && result.message) {
         setMessages([...newMessages, { role: 'assistant', content: result.message }]);
@@ -75,7 +104,7 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-light/30 to-white relative">
-      {/* Floating Action Button - Always Visible */}
+      {/* Floating Action Button */}
       <button
         onClick={() => router.push(`/g/${guideSlug}/create`)}
         className="fixed bottom-20 right-4 z-20 w-14 h-14 bg-warm hover:bg-warm/90 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:shadow-xl"
@@ -88,18 +117,55 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
       <div className="bg-primary text-white px-4 py-4 shadow-sm flex-shrink-0">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden p-1.5 flex-shrink-0 shadow-md">
-            <img 
-              src="/Logo.png" 
-              alt="Agent Mary" 
+            <img
+              src="/Logo.png"
+              alt="Agent Mary"
               className="w-full h-full object-contain"
             />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">{guideName}</p>
-            <p className="text-xs opacity-80">Agent Mary</p>
+            <p className="text-xs opacity-80">
+              Agent Mary
+              {nearestLocation && (
+                <span className="ml-2 inline-flex items-center gap-1">
+                  <MapPin size={10} />
+                  {nearestLocation.poi ? nearestLocation.poi.name : nearestLocation.location.name}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link
+              href={`/g/${guideSlug}/posts`}
+              className="flex items-center gap-1 text-white/80 hover:text-white text-xs transition-colors"
+              title="My Posts"
+            >
+              <FileText size={16} />
+            </Link>
+            <Link
+              href={`/g/${guideSlug}/gallery`}
+              className="flex items-center gap-1 text-white/80 hover:text-white text-xs transition-colors"
+              title="Gallery"
+            >
+              <Images size={16} />
+            </Link>
           </div>
         </div>
       </div>
+
+      {/* Location Permission Banner */}
+      {geoStatus === 'idle' && (
+        <div className="max-w-2xl mx-auto w-full px-3 pt-3">
+          <button
+            onClick={requestPermission}
+            className="w-full flex items-center gap-2 px-4 py-3 bg-light border border-primary/20 rounded-xl text-sm text-primary hover:bg-primary/10 transition-colors"
+          >
+            <MapPin size={18} />
+            <span>Enable location for a personalized experience</span>
+          </button>
+        </div>
+      )}
 
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto">
@@ -108,9 +174,9 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
             <div key={index} className="flex items-start gap-3">
               {msg.role === 'assistant' && (
                 <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
-                  <img 
-                    src="/Logo.png" 
-                    alt="Mary" 
+                  <img
+                    src="/Logo.png"
+                    alt="Mary"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -131,9 +197,9 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
           {loading && (
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
-                <img 
-                  src="/Logo.png" 
-                  alt="Mary" 
+                <img
+                  src="/Logo.png"
+                  alt="Mary"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -143,24 +209,28 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
             </div>
           )}
 
-          {/* Quick Actions - show only if no conversation yet */}
+          {/* Quick Actions */}
           {messages.length <= 1 && (
             <div className="flex items-start gap-2">
               <div className="w-10 flex-shrink-0"></div>
               <div className="flex-1 grid grid-cols-2 gap-2">
                 <SecondaryButton
                   size="sm"
-                  onClick={() => handleQuickAction("What's the significance of Jerusalem?")}
+                  onClick={() => handleQuickAction(
+                    nearestLocation
+                      ? `Tell me about ${nearestLocation.location.name}`
+                      : "What's the significance of Jerusalem?"
+                  )}
                   className="text-xs h-auto py-2"
                 >
-                  Ask about location
+                  {nearestLocation ? `About ${nearestLocation.location.name}` : 'Ask about location'}
                 </SecondaryButton>
                 <SecondaryButton
                   size="sm"
                   onClick={() => handleQuickAction("What's on the route today?")}
                   className="text-xs h-auto py-2"
                 >
-                  Today's route
+                  Today&apos;s route
                 </SecondaryButton>
               </div>
             </div>
@@ -178,7 +248,7 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Ask Mary anything..."
               disabled={loading}
               className="flex-1 px-4 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-full focus:border-primary focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 placeholder:text-gray-400"
