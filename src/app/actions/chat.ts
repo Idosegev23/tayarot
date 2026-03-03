@@ -142,7 +142,7 @@ WHEN LOCATION IS UNKNOWN:
     const lastMessage = allGemini[allGemini.length - 1];
 
     const chat = ai.chats.create({
-      model: 'gemini-3.0-flash',
+      model: 'gemini-3-flash-preview',
       config: { systemInstruction },
       history,
     });

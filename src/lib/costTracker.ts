@@ -11,7 +11,7 @@ import { createClient } from './supabase/server';
 // Cost estimates (as of Mar 2026 - update these periodically)
 const COST_ESTIMATES = {
   gemini: {
-    'gemini-3.0-flash': {
+    'gemini-3-flash-preview': {
       input: 0.00005, // per 1K tokens
       output: 0.0001, // per 1K tokens
     },
@@ -70,7 +70,7 @@ export async function trackCost(metrics: UsageMetrics): Promise<void> {
  * Estimate cost for Gemini chat call
  */
 export function estimateGeminiChatCost(inputTokens: number, outputTokens: number): number {
-  const costs = COST_ESTIMATES.gemini['gemini-3.0-flash'];
+  const costs = COST_ESTIMATES.gemini['gemini-3-flash-preview'];
   const inputCost = (inputTokens / 1000) * costs.input;
   const outputCost = (outputTokens / 1000) * costs.output;
   return inputCost + outputCost;

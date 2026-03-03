@@ -283,7 +283,7 @@ Provide a short, elegant design concept (2-3 sentences) describing:
 Keep it concise and actionable for a graphic designer.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.0-flash',
+      model: 'gemini-3-flash-preview',
       contents: promptRequest,
     });
     const designPrompt = response.text;
@@ -340,7 +340,7 @@ VERSE: [ONE SHORT verse only - 15-30 words]
 REFERENCE: [Book Chapter:Verse]`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.0-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     const text = response.text || '';
