@@ -1,6 +1,6 @@
 'use server';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { headers } from 'next/headers';
 import { checkRateLimit, getClientIdentifier, logRateLimitHit } from '@/lib/rateLimiter';
 import { isRateLimitingEnabled } from '@/lib/env';
@@ -84,12 +84,7 @@ export async function generateStyledImage({
       }
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Use Nano Banana 2 (Gemini 3.1 Flash Image) for image editing
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-3.1-flash-image-preview',
-      systemInstruction: 'You are a photo editor, not an image generator. Your task is to edit existing photos by cropping them and adding text overlays. You must NEVER generate new images or modify the original photo content. Only crop and add text.'
-    });
+    const ai = new GoogleGenAI({ apiKey });
 
     // Build dynamic text elements based on overlay config
     const overlayConfig = overlays ?? {
@@ -201,43 +196,49 @@ ${JSON.stringify(promptConfig, null, 2)}
 
 FINAL OUTPUT: The user's original photo (cropped to square if needed)${textElements.length > 0 ? ' with clean text overlay' : ''}. The photo itself should be completely unmodified.`;
 
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          data: imageBase64,
-          mimeType: imageMimeType,
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-image-preview',
+      contents: [
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: imageMimeType,
+          },
         },
+        { text: prompt },
+      ],
+      config: {
+        systemInstruction: 'You are a photo editor, not an image generator. Your task is to edit existing photos by cropping them and adding text overlays. You must NEVER generate new images or modify the original photo content. Only crop and add text.',
       },
-      prompt,
-    ]);
-    
-    const response = result.response;
-    
+    });
+
     // Extract image data from response
     const candidates = response.candidates;
     if (candidates && candidates.length > 0) {
-      const parts = candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.inlineData) {
-          // Track cost (fire and forget)
-          const cost = estimateGeminiCost(1);
-          trackCost({
-            service: 'gemini',
-            imagesGenerated: 1,
-            estimatedCost: cost,
-          }).catch(() => {});
-          
-          logger.info('Image generated successfully', {
-            location,
-            style,
-            estimatedCost: cost,
-          });
-          
-          return {
-            success: true,
-            imageData: part.inlineData.data,
-            mimeType: part.inlineData.mimeType,
-          };
+      const parts = candidates[0].content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if (part.inlineData) {
+            // Track cost (fire and forget)
+            const cost = estimateGeminiCost(1);
+            trackCost({
+              service: 'gemini',
+              imagesGenerated: 1,
+              estimatedCost: cost,
+            }).catch(() => {});
+
+            logger.info('Image generated successfully', {
+              location,
+              style,
+              estimatedCost: cost,
+            });
+
+            return {
+              success: true,
+              imageData: part.inlineData.data,
+              mimeType: part.inlineData.mimeType,
+            };
+          }
         }
       }
     }
@@ -265,8 +266,7 @@ export async function generateImagePrompt({
       return { success: false, error: 'Gemini API key not configured' };
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.0-flash' });
+    const ai = new GoogleGenAI({ apiKey });
 
     const promptRequest = `Generate a beautiful text overlay design concept for a travel photo post.
 
@@ -282,9 +282,11 @@ Provide a short, elegant design concept (2-3 sentences) describing:
 
 Keep it concise and actionable for a graphic designer.`;
 
-    const result = await model.generateContent(promptRequest);
-    const response = result.response;
-    const designPrompt = response.text();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.0-flash',
+      contents: promptRequest,
+    });
+    const designPrompt = response.text;
 
     return {
       success: true,
@@ -308,8 +310,7 @@ export async function suggestBiblicalVerse(
       return { success: false, error: 'Gemini API key not configured' };
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.0-flash' });
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `Suggest ONE SHORT biblical verse from the Hebrew Bible (Tanakh/Old Testament ONLY) that connects to this travel experience in the Holy Land.
 
@@ -338,9 +339,11 @@ Format your response EXACTLY as:
 VERSE: [ONE SHORT verse only - 15-30 words]
 REFERENCE: [Book Chapter:Verse]`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.0-flash',
+      contents: prompt,
+    });
+    const text = response.text || '';
 
     // Parse the response (without 's' flag for ES compatibility)
     const lines = text.split('\n');

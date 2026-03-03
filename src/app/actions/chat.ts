@@ -1,6 +1,6 @@
 'use server';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { headers } from 'next/headers';
 import { checkRateLimit, getClientIdentifier, logRateLimitHit } from '@/lib/rateLimiter';
 import { isRateLimitingEnabled } from '@/lib/env';
@@ -117,25 +117,38 @@ WHEN LOCATION IS UNKNOWN:
 - Ask where they are or what they're seeing
 - Offer to help once you know their location`;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-3.0-flash',
-      systemInstruction,
-    });
+    const ai = new GoogleGenAI({ apiKey });
 
     // Convert messages to Gemini format (last 20 messages)
+    // Gemini requires history to start with a 'user' role
     const recentMessages = messages.slice(-20);
-    const geminiHistory = recentMessages.slice(0, -1).map((msg) => ({
+    const allGemini = recentMessages.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
       parts: [{ text: msg.content }],
     }));
 
-    const lastMessage = recentMessages[recentMessages.length - 1];
+    // Strip leading 'model' messages — Gemini requires first message to be 'user'
+    while (allGemini.length > 0 && allGemini[0].role === 'model') {
+      allGemini.shift();
+    }
 
-    const chat = model.startChat({ history: geminiHistory });
-    const result = await chat.sendMessage(lastMessage.content);
-    const response = result.response;
-    const outputText = response.text() || 'I apologize, I couldn\'t process that. Could you try again?';
+    // Need at least a user message
+    if (allGemini.length === 0) {
+      return { success: false, error: 'No user message provided' };
+    }
+
+    // History = all but last, last message sent via sendMessage
+    const history = allGemini.slice(0, -1);
+    const lastMessage = allGemini[allGemini.length - 1];
+
+    const chat = ai.chats.create({
+      model: 'gemini-3.0-flash',
+      config: { systemInstruction },
+      history,
+    });
+
+    const response = await chat.sendMessage({ message: lastMessage.parts[0].text });
+    const outputText = response.text || 'I apologize, I couldn\'t process that. Could you try again?';
 
     // Track cost (fire and forget)
     const cost = estimateGeminiChatCost(500, 200);
