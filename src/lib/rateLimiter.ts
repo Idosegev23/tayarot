@@ -9,15 +9,10 @@ import { isRateLimitingEnabled } from './env';
 
 // Rate limit configurations for different services
 export const RATE_LIMITS = {
-  openai: {
+  gemini: {
     maxRequests: 10, // requests
     windowMs: 60 * 1000, // 1 minute
-    message: 'Too many chat requests. Please wait a moment before trying again.',
-  },
-  gemini: {
-    maxRequests: 5, // requests (more expensive)
-    windowMs: 60 * 1000, // 1 minute
-    message: 'Too many image generation requests. Please wait a moment before trying again.',
+    message: 'Too many requests. Please wait a moment before trying again.',
   },
   upload: {
     maxRequests: 20, // requests
@@ -215,7 +210,7 @@ export async function logRateLimitHit(
 
 /**
  * Middleware wrapper for server actions
- * Usage: const result = await withRateLimit('openai', headers, async () => { ... });
+ * Usage: const result = await withRateLimit('gemini', headers, async () => { ... });
  */
 export async function withRateLimit<T>(
   service: RateLimitService,

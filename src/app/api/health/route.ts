@@ -97,7 +97,6 @@ function checkEnvironment(): HealthCheck {
   const requiredVars = [
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'OPENAI_API_KEY',
     'GEMINI_API_KEY',
   ];
   
@@ -115,54 +114,6 @@ function checkEnvironment(): HealthCheck {
     service: 'environment',
     status: 'healthy',
   };
-}
-
-/**
- * Check OpenAI API connectivity (lightweight)
- */
-async function checkOpenAI(): Promise<HealthCheck> {
-  const start = Date.now();
-  try {
-    if (!process.env.OPENAI_API_KEY) {
-      return {
-        service: 'openai',
-        status: 'unhealthy',
-        message: 'API key not configured',
-      };
-    }
-    
-    // Quick check - just verify the API key format and endpoint is reachable
-    // Don't actually call the API to avoid costs
-    const response = await fetch('https://api.openai.com/v1/models', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      signal: AbortSignal.timeout(5000), // 5 second timeout
-    });
-    
-    if (!response.ok) {
-      return {
-        service: 'openai',
-        status: 'degraded',
-        message: `API returned ${response.status}`,
-        responseTime: Date.now() - start,
-      };
-    }
-    
-    return {
-      service: 'openai',
-      status: 'healthy',
-      responseTime: Date.now() - start,
-    };
-  } catch (error) {
-    return {
-      service: 'openai',
-      status: 'degraded',
-      message: `Check failed: ${error}`,
-      responseTime: Date.now() - start,
-    };
-  }
 }
 
 /**
@@ -216,15 +167,14 @@ export async function GET() {
   const startTime = Date.now();
   
   // Run all checks in parallel
-  const [database, storage, environment, openai, gemini] = await Promise.all([
+  const [database, storage, environment, gemini] = await Promise.all([
     checkDatabase(),
     checkStorage(),
     checkEnvironment(),
-    checkOpenAI(),
     checkGemini(),
   ]);
-  
-  const checks = [database, storage, environment, openai, gemini];
+
+  const checks = [database, storage, environment, gemini];
   
   // Determine overall status
   const hasUnhealthy = checks.some(c => c.status === 'unhealthy');

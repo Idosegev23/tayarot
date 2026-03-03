@@ -266,7 +266,7 @@ export async function generateImagePrompt({
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.0-flash' });
 
     const promptRequest = `Generate a beautiful text overlay design concept for a travel photo post.
 
@@ -309,7 +309,7 @@ export async function suggestBiblicalVerse(
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.0-flash' });
 
     const prompt = `Suggest ONE SHORT biblical verse from the Hebrew Bible (Tanakh/Old Testament ONLY) that connects to this travel experience in the Holy Land.
 

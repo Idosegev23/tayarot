@@ -9,9 +9,8 @@ interface EnvVars {
   // Supabase (Public - available on client)
   NEXT_PUBLIC_SUPABASE_URL: string;
   NEXT_PUBLIC_SUPABASE_ANON_KEY: string;
-  
+
   // AI APIs (Server-only)
-  OPENAI_API_KEY: string;
   GEMINI_API_KEY: string;
 }
 
@@ -90,13 +89,6 @@ export function validateEnv(): EnvVars {
       'NEXT_PUBLIC_SUPABASE_ANON_KEY',
       validateRequired('NEXT_PUBLIC_SUPABASE_ANON_KEY', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
       'eyJ' // JWT tokens typically start with this
-    ),
-    
-    // OpenAI
-    OPENAI_API_KEY: validateApiKey(
-      'OPENAI_API_KEY',
-      validateRequired('OPENAI_API_KEY', process.env.OPENAI_API_KEY),
-      'sk-'
     ),
     
     // Gemini

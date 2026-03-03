@@ -22,7 +22,7 @@ No test framework is configured.
 - **Next.js 16** (App Router) + React 19 + TypeScript 5
 - **Tailwind CSS v4** (PostCSS plugin, NOT v3 config format)
 - **Supabase** (Postgres + Storage) — client in `src/lib/supabase/`
-- **OpenAI** (GPT-5-Nano for chat) + **Google Gemini** (image generation)
+- **Google Gemini 3** (Flash for chat + verse/prompt generation, Flash Image for image editing)
 - **Upstash Redis** (optional rate limiting)
 - Path alias: `@/*` → `./src/*`
 
@@ -40,7 +40,7 @@ All data mutations use Next.js Server Actions (not API routes). Each action inte
 
 - `createPost.ts` — Post creation with image storage
 - `generateImage.ts` — Gemini image editing (crop + text overlay)
-- `chat.ts` — OpenAI chat (Mary persona)
+- `chat.ts` — Gemini chat (Mary persona)
 - `updatePostStatus.ts` — Guide approval workflow
 - `uploadGeneratedImage.ts` — Store generated images in Supabase
 - `adminActions.ts` — Admin operations
@@ -74,7 +74,7 @@ Migrations in `migrations/` (001-004). Core tables: `guides`, `posts`, `access_k
 
 ## Environment Variables
 
-**Required:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`
+**Required:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`
 
 **Optional:** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VERCEL_URL`, `ALLOWED_ORIGIN`
 

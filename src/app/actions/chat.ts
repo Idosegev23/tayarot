@@ -1,9 +1,10 @@
 'use server';
 
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { headers } from 'next/headers';
 import { checkRateLimit, getClientIdentifier, logRateLimitHit } from '@/lib/rateLimiter';
 import { isRateLimitingEnabled } from '@/lib/env';
-import { checkBudgetBeforeCall, estimateOpenAICost } from '@/lib/costTracker';
+import { checkBudgetBeforeCall, estimateGeminiChatCost, trackCost } from '@/lib/costTracker';
 import { createClient } from '@/lib/supabase/server';
 import { findNextItineraryStop } from '@/lib/geolocation';
 import type { ItineraryStop } from '@/lib/types';
@@ -53,8 +54,8 @@ export async function sendChatMessage(
     if (isRateLimitingEnabled()) {
       const headersList = await headers();
       const identifier = getClientIdentifier(headersList);
-      const rateLimitResult = await checkRateLimit(identifier, 'openai');
-      logRateLimitHit(identifier, 'openai', rateLimitResult.allowed).catch(() => {});
+      const rateLimitResult = await checkRateLimit(identifier, 'gemini');
+      logRateLimitHit(identifier, 'gemini', rateLimitResult.allowed).catch(() => {});
 
       if (!rateLimitResult.allowed) {
         return {
@@ -65,15 +66,15 @@ export async function sendChatMessage(
     }
 
     // Budget pre-check
-    const budgetCheck = await checkBudgetBeforeCall('openai', estimateOpenAICost(500, 200));
+    const budgetCheck = await checkBudgetBeforeCall('gemini', estimateGeminiChatCost(500, 200));
     if (!budgetCheck.allowed) {
       return { success: false, error: budgetCheck.error || 'Budget limit reached. Please try again later.' };
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return { success: false, error: 'OpenAI API key not configured' };
+      return { success: false, error: 'Gemini API key not configured' };
     }
 
     // Look up itinerary for next-stop context
@@ -94,15 +95,7 @@ export async function sendChatMessage(
         ? `TOURIST LOCATION:\nAt or near: ${context.location}${nextStopInfo ? `\n${nextStopInfo}` : ''}`
         : 'TOURIST LOCATION: Unknown';
 
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-nano-2025-08-07',
-        instructions: `You are Mary, a warm and knowledgeable virtual tour guide for Israel and the Holy Land.
+    const systemInstruction = `You are Mary, a warm and knowledgeable virtual tour guide for Israel and the Holy Land.
 
 PERSONALITY:
 - Friendly, spiritual yet inclusive, genuinely helpful
@@ -122,23 +115,35 @@ WHEN YOU KNOW THE TOURIST'S LOCATION:
 
 WHEN LOCATION IS UNKNOWN:
 - Ask where they are or what they're seeing
-- Offer to help once you know their location`,
-        input: messages.slice(-20), // limit conversation history
-        store: false,
-      }),
+- Offer to help once you know their location`;
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.0-flash',
+      systemInstruction,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenAI API Error:', error);
-      return { success: false, error: 'Failed to get response from AI' };
-    }
+    // Convert messages to Gemini format (last 20 messages)
+    const recentMessages = messages.slice(-20);
+    const geminiHistory = recentMessages.slice(0, -1).map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
+      parts: [{ text: msg.content }],
+    }));
 
-    const data = await response.json();
+    const lastMessage = recentMessages[recentMessages.length - 1];
 
-    const outputText = data.output_text ||
-      data.output?.find((item: { type: string }) => item.type === 'message')?.content?.[0]?.text ||
-      'I apologize, I couldn\'t process that. Could you try again?';
+    const chat = model.startChat({ history: geminiHistory });
+    const result = await chat.sendMessage(lastMessage.content);
+    const response = result.response;
+    const outputText = response.text() || 'I apologize, I couldn\'t process that. Could you try again?';
+
+    // Track cost (fire and forget)
+    const cost = estimateGeminiChatCost(500, 200);
+    trackCost({
+      service: 'gemini',
+      tokensUsed: 700,
+      estimatedCost: cost,
+    }).catch(() => {});
 
     return { success: true, message: outputText };
   } catch (error) {

@@ -8,16 +8,14 @@
 import { logger } from './logger';
 import { createClient } from './supabase/server';
 
-// Cost estimates (as of Jan 2026 - update these periodically)
+// Cost estimates (as of Mar 2026 - update these periodically)
 const COST_ESTIMATES = {
-  openai: {
-    'gpt-5-nano-2025-08-07': {
-      input: 0.0001, // per 1K tokens
-      output: 0.0002, // per 1K tokens
-    },
-  },
   gemini: {
-    'gemini-3-pro-image-preview': {
+    'gemini-3.0-flash': {
+      input: 0.00005, // per 1K tokens
+      output: 0.0001, // per 1K tokens
+    },
+    'gemini-3.1-flash-image-preview': {
       perImage: 0.05, // per image generation
     },
   },
@@ -30,7 +28,7 @@ const BUDGET_LIMITS = {
   monthly: 150.0, // $150/month
 };
 
-export type AIService = 'openai' | 'gemini';
+export type AIService = 'gemini';
 
 interface UsageMetrics {
   service: AIService;
@@ -69,10 +67,10 @@ export async function trackCost(metrics: UsageMetrics): Promise<void> {
 }
 
 /**
- * Estimate cost for OpenAI call
+ * Estimate cost for Gemini chat call
  */
-export function estimateOpenAICost(inputTokens: number, outputTokens: number): number {
-  const costs = COST_ESTIMATES.openai['gpt-5-nano-2025-08-07'];
+export function estimateGeminiChatCost(inputTokens: number, outputTokens: number): number {
+  const costs = COST_ESTIMATES.gemini['gemini-3.0-flash'];
   const inputCost = (inputTokens / 1000) * costs.input;
   const outputCost = (outputTokens / 1000) * costs.output;
   return inputCost + outputCost;
@@ -82,7 +80,7 @@ export function estimateOpenAICost(inputTokens: number, outputTokens: number): n
  * Estimate cost for Gemini image generation
  */
 export function estimateGeminiCost(imageCount: number = 1): number {
-  return imageCount * COST_ESTIMATES.gemini['gemini-3-pro-image-preview'].perImage;
+  return imageCount * COST_ESTIMATES.gemini['gemini-3.1-flash-image-preview'].perImage;
 }
 
 /**
