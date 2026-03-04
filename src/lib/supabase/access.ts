@@ -10,7 +10,7 @@ interface AccessValidationResult {
 
 export async function validateAccess(
   key: string | null,
-  requiredRole?: AccessRole,
+  requiredRole?: AccessRole | AccessRole[],
   requiredGuideSlug?: string
 ): Promise<AccessValidationResult> {
   if (!key) {
@@ -31,9 +31,12 @@ export async function validateAccess(
     return { valid: false, error: 'Invalid or inactive access key' };
   }
 
-  // Check role match if required
-  if (requiredRole && accessKey.role !== requiredRole) {
-    return { valid: false, error: 'Insufficient permissions' };
+  // Check role match if required (supports single role or array)
+  if (requiredRole) {
+    const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (!roles.includes(accessKey.role)) {
+      return { valid: false, error: 'Insufficient permissions' };
+    }
   }
 
   // Check guide match if required

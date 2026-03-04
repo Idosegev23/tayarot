@@ -22,9 +22,10 @@ interface ChatInterfaceProps {
   groupId?: string;
   groupName?: string;
   groupSlug?: string;
+  touristName?: string;
 }
 
-export function ChatInterface({ guideSlug, guideName, guideId, groupId, groupName, groupSlug }: ChatInterfaceProps) {
+export function ChatInterface({ guideSlug, guideName, guideId, groupId, groupName, groupSlug, touristName }: ChatInterfaceProps) {
   const router = useRouter();
   const firstName = guideName?.split(' ')[0] || '';
   const personaName = groupId && firstName ? `${firstName} Co-Guide` : 'Mary';

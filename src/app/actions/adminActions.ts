@@ -17,31 +17,233 @@ async function requireAdmin(accessKey: string): Promise<{ valid: boolean; error?
   return { valid: true };
 }
 
-// Guide Actions
-export async function createGuide(accessKey: string, slug: string, displayName: string) {
+async function requireAdminOrTourism(accessKey: string): Promise<{ valid: boolean; role?: AccessRole; error?: string }> {
+  if (!accessKey) return { valid: false, error: 'Access key is required' };
+  const result = await validateAccess(accessKey, ['admin', 'tourism']);
+  if (!result.valid) {
+    return { valid: false, error: 'Unauthorized' };
+  }
+  return { valid: true, role: result.role };
+}
+
+// ==========================================
+// DATA FETCHING (admin + tourism)
+// ==========================================
+
+export async function getGuidesWithGroupsAndCounts(accessKey: string) {
+  try {
+    const auth = await requireAdminOrTourism(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error, guides: [] };
+
+    const supabase = await createClient();
+
+    // Fetch guides with post counts
+    const { data: guides, error: guidesError } = await supabase
+      .from('guides')
+      .select('*, posts(count)')
+      .order('created_at', { ascending: false });
+
+    if (guidesError) return { success: false, error: guidesError.message, guides: [] };
+
+    // Fetch all groups with counts
+    const { data: groups } = await supabase
+      .from('groups')
+      .select('*, posts(count), group_participants(count), group_itinerary_days(count)')
+      .order('created_at', { ascending: false });
+
+    // Nest groups inside guides
+    const guidesWithGroups = (guides || []).map(guide => {
+      const guideGroups = (groups || []).filter(g => g.guide_id === guide.id);
+      const postCount = Array.isArray(guide.posts) && guide.posts[0]
+        ? (guide.posts[0] as { count: number }).count
+        : 0;
+
+      return {
+        ...guide,
+        posts: undefined,
+        totalPosts: postCount,
+        groups: guideGroups.map(g => ({
+          id: g.id,
+          guide_id: g.guide_id,
+          name: g.name,
+          slug: g.slug,
+          description: g.description,
+          start_date: g.start_date,
+          end_date: g.end_date,
+          status: g.status,
+          created_at: g.created_at,
+          updated_at: g.updated_at,
+          postsCount: Array.isArray(g.posts) && g.posts[0] ? (g.posts[0] as { count: number }).count : 0,
+          participantsCount: Array.isArray(g.group_participants) && g.group_participants[0] ? (g.group_participants[0] as { count: number }).count : 0,
+          daysCount: Array.isArray(g.group_itinerary_days) && g.group_itinerary_days[0] ? (g.group_itinerary_days[0] as { count: number }).count : 0,
+        })),
+      };
+    });
+
+    return { success: true, guides: guidesWithGroups };
+  } catch (error) {
+    logger.error('getGuidesWithGroupsAndCounts error', error as Error);
+    return { success: false, error: 'An unexpected error occurred', guides: [] };
+  }
+}
+
+export async function getAllGroupsWithCounts(
+  accessKey: string,
+  filters?: { guideId?: string; status?: string }
+) {
+  try {
+    const auth = await requireAdminOrTourism(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error, groups: [] };
+
+    const supabase = await createClient();
+
+    let query = supabase
+      .from('groups')
+      .select('*, guide:guides(id, slug, display_name), posts(count), group_participants(count), group_itinerary_days(count)')
+      .order('created_at', { ascending: false });
+
+    if (filters?.guideId) {
+      query = query.eq('guide_id', filters.guideId);
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) return { success: false, error: error.message, groups: [] };
+
+    const groups = (data || []).map(g => ({
+      id: g.id,
+      guide_id: g.guide_id,
+      name: g.name,
+      slug: g.slug,
+      description: g.description,
+      start_date: g.start_date,
+      end_date: g.end_date,
+      status: g.status,
+      created_at: g.created_at,
+      updated_at: g.updated_at,
+      guide: g.guide,
+      postsCount: Array.isArray(g.posts) && g.posts[0] ? (g.posts[0] as { count: number }).count : 0,
+      participantsCount: Array.isArray(g.group_participants) && g.group_participants[0] ? (g.group_participants[0] as { count: number }).count : 0,
+      daysCount: Array.isArray(g.group_itinerary_days) && g.group_itinerary_days[0] ? (g.group_itinerary_days[0] as { count: number }).count : 0,
+    }));
+
+    return { success: true, groups };
+  } catch (error) {
+    logger.error('getAllGroupsWithCounts error', error as Error);
+    return { success: false, error: 'An unexpected error occurred', groups: [] };
+  }
+}
+
+export async function getGroupFullDetail(accessKey: string, groupId: string) {
+  try {
+    const auth = await requireAdminOrTourism(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
+    const supabase = await createClient();
+
+    // Fetch group with guide
+    const { data: group, error: groupError } = await supabase
+      .from('groups')
+      .select('*, guide:guides(id, slug, display_name)')
+      .eq('id', groupId)
+      .single();
+
+    if (groupError || !group) return { success: false, error: 'Group not found' };
+
+    // Fetch itinerary, participants, posts in parallel
+    const [daysRes, participantsRes, postsRes] = await Promise.all([
+      supabase.from('group_itinerary_days').select('*').eq('group_id', groupId).order('day_number'),
+      supabase.from('group_participants').select('*').eq('group_id', groupId).order('last_name').order('first_name'),
+      supabase.from('posts').select('*').eq('group_id', groupId).order('created_at', { ascending: false }),
+    ]);
+
+    // Fetch stops for days
+    const dayIds = (daysRes.data || []).map(d => d.id);
+    let stopsMap: Record<string, Array<Record<string, unknown>>> = {};
+    if (dayIds.length > 0) {
+      const { data: stops } = await supabase
+        .from('group_itinerary_stops')
+        .select('*')
+        .in('day_id', dayIds)
+        .order('order_index');
+
+      for (const stop of stops || []) {
+        if (!stopsMap[stop.day_id]) stopsMap[stop.day_id] = [];
+        stopsMap[stop.day_id].push(stop);
+      }
+    }
+
+    const days = (daysRes.data || []).map(day => ({
+      ...day,
+      stops: stopsMap[day.id] || [],
+    }));
+
+    return {
+      success: true,
+      group,
+      days,
+      participants: participantsRes.data || [],
+      posts: postsRes.data || [],
+    };
+  } catch (error) {
+    logger.error('getGroupFullDetail error', error as Error);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+export async function addParticipantAdmin(
+  accessKey: string,
+  groupId: string,
+  firstName: string,
+  lastName: string
+) {
   try {
     const auth = await requireAdmin(accessKey);
     if (!auth.valid) return { success: false, error: auth.error };
 
     const supabase = await createClient();
-
     const { data, error } = await supabase
-      .from('guides')
-      .insert({ slug, display_name: displayName })
+      .from('group_participants')
+      .insert({ group_id: groupId, first_name: firstName.trim(), last_name: lastName.trim() })
       .select()
       .single();
 
     if (error) {
-      console.error('Create guide error:', error);
+      if (error.code === '23505') return { success: false, error: 'Participant already exists' };
       return { success: false, error: error.message };
     }
-
-    return { success: true, guide: data };
+    return { success: true, participant: data };
   } catch (error) {
-    console.error('Create guide error:', error);
+    logger.error('addParticipantAdmin error', error as Error);
     return { success: false, error: 'An unexpected error occurred' };
   }
 }
+
+export async function removeParticipantAdmin(accessKey: string, participantId: string) {
+  try {
+    const auth = await requireAdmin(accessKey);
+    if (!auth.valid) return { success: false, error: auth.error };
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('group_participants')
+      .delete()
+      .eq('id', participantId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (error) {
+    logger.error('removeParticipantAdmin error', error as Error);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+// ==========================================
+// GUIDE CRUD (admin only)
+// ==========================================
 
 export async function updateGuide(accessKey: string, id: string, displayName: string) {
   try {

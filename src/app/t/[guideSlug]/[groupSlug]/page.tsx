@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getGroupBySlug } from '@/app/actions/groupActions';
-import { ChatInterface } from '@/app/g/[guideSlug]/ChatInterface';
+import { TouristGate } from './TouristGate';
 
 export async function generateMetadata({
   params,
@@ -31,7 +31,7 @@ export default async function TouristGroupPage({
   }
 
   return (
-    <ChatInterface
+    <TouristGate
       guideSlug={guideSlug}
       guideName={guide.display_name}
       guideId={guide.id}

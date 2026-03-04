@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateGroup, deleteGroup } from '@/app/actions/groupActions';
+import { addParticipant, removeParticipant, addParticipantsBulk } from '@/app/actions/participantActions';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { TouristLink } from '@/components/TouristLink';
-import { ArrowLeft, MapPin, Calendar, FileText, Settings, Trash2 } from 'lucide-react';
-import type { GuideWithAuth, Group, Post } from '@/lib/types';
+import { ParticipantsManager } from '@/components/dashboard/ParticipantsManager';
+import { ArrowLeft, MapPin, Calendar, FileText, Settings, Trash2, Users } from 'lucide-react';
+import type { GuideWithAuth, Group, Post, GroupParticipant } from '@/lib/types';
 
-type Tab = 'overview' | 'itinerary' | 'posts' | 'settings';
+type Tab = 'overview' | 'itinerary' | 'posts' | 'participants' | 'settings';
 
 interface GroupDetailProps {
   group: Group;
@@ -31,9 +33,10 @@ interface GroupDetailProps {
   }>;
   posts: Post[];
   postsCount: number;
+  participants: GroupParticipant[];
 }
 
-export function GroupDetail({ group, guide, days, posts, postsCount }: GroupDetailProps) {
+export function GroupDetail({ group, guide, days, posts, postsCount, participants }: GroupDetailProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [deleting, setDeleting] = useState(false);
@@ -78,9 +81,22 @@ export function GroupDetail({ group, guide, days, posts, postsCount }: GroupDeta
     }
   };
 
+  const handleAddParticipant = async (firstName: string, lastName: string) => {
+    return addParticipant(group.id, firstName, lastName);
+  };
+
+  const handleRemoveParticipant = async (participantId: string) => {
+    return removeParticipant(participantId);
+  };
+
+  const handleBulkAdd = async (list: Array<{ firstName: string; lastName: string }>) => {
+    return addParticipantsBulk(group.id, list);
+  };
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'overview', label: 'Overview', icon: <MapPin size={16} /> },
     { id: 'itinerary', label: 'Itinerary', icon: <Calendar size={16} /> },
+    { id: 'participants', label: `Participants (${participants.length})`, icon: <Users size={16} /> },
     { id: 'posts', label: `Posts (${postsCount})`, icon: <FileText size={16} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
   ];
@@ -254,6 +270,17 @@ export function GroupDetail({ group, guide, days, posts, postsCount }: GroupDeta
               ))
             )}
           </div>
+        )}
+
+        {/* Participants Tab */}
+        {activeTab === 'participants' && (
+          <ParticipantsManager
+            groupId={group.id}
+            participants={participants}
+            onAdd={handleAddParticipant}
+            onRemove={handleRemoveParticipant}
+            onBulkAdd={handleBulkAdd}
+          />
         )}
 
         {/* Posts Tab */}

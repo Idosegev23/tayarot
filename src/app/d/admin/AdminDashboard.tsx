@@ -8,7 +8,6 @@ import { Chip } from '@/components/ui/Chip';
 import { toast } from '@/components/ui/Toast';
 import { EmptyState } from '@/components/EmptyState';
 import {
-  createGuide,
   updateGuide,
   createAccessKey,
   toggleKeyActive,
@@ -63,9 +62,11 @@ export function AdminDashboard({ accessKey, guides: initialGuides, accessKeys: i
       return;
     }
 
-    const result = guideFormData.id
-      ? await updateGuide(accessKey, guideFormData.id, guideFormData.displayName)
-      : await createGuide(accessKey, guideFormData.slug, guideFormData.displayName);
+    if (!guideFormData.id) {
+      toast.error('Use "Create with Auth" to create new guides');
+      return;
+    }
+    const result = await updateGuide(accessKey, guideFormData.id, guideFormData.displayName);
 
     if (result.success) {
       toast.success(guideFormData.id ? 'Guide updated!' : 'Guide created!');

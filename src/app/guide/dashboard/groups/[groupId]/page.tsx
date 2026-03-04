@@ -24,22 +24,31 @@ export default async function GroupDetailPage({
   // Verify ownership
   if (group.guide_id !== guide.id) notFound();
 
-  // Fetch group posts
+  // Fetch group posts and participants in parallel
   const supabase = await createClient();
-  const { data: posts, count: postsCount } = await supabase
-    .from('posts')
-    .select('*', { count: 'exact' })
-    .eq('group_id', groupId)
-    .order('created_at', { ascending: false })
-    .limit(20);
+  const [postsRes, participantsRes] = await Promise.all([
+    supabase
+      .from('posts')
+      .select('*', { count: 'exact' })
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false })
+      .limit(20),
+    supabase
+      .from('group_participants')
+      .select('*')
+      .eq('group_id', groupId)
+      .order('last_name')
+      .order('first_name'),
+  ]);
 
   return (
     <GroupDetail
       group={group}
       guide={guide}
       days={days}
-      posts={posts || []}
-      postsCount={postsCount || 0}
+      posts={postsRes.data || []}
+      postsCount={postsRes.count || 0}
+      participants={participantsRes.data || []}
     />
   );
 }

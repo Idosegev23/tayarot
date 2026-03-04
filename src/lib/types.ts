@@ -17,6 +17,15 @@ export interface GuideWithAuth extends Guide {
   updated_at?: string;
 }
 
+// Group participants (tourist whitelist)
+export interface GroupParticipant {
+  id: string;
+  group_id: string;
+  first_name: string;
+  last_name: string;
+  created_at: string;
+}
+
 // Groups
 export type GroupStatus = 'active' | 'completed' | 'archived';
 
