@@ -1,31 +1,53 @@
 import { createClient } from '@/lib/supabase/server';
-import { validateAccess } from '@/lib/supabase/access';
 import { UnifiedDashboard } from './UnifiedDashboard';
 import { Card } from '@/components/ui/Card';
 import { Shield } from 'lucide-react';
 
+const DASHBOARD_PASSWORD = '123456';
+
 interface PageProps {
-  searchParams: Promise<{ k?: string }>;
+  searchParams: Promise<{ p?: string; r?: string }>;
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const { k: accessKey } = await searchParams;
+  const { p: password, r: roleParam } = await searchParams;
 
-  // No key — show access key input
-  if (!accessKey) {
-    return <AccessKeyForm />;
+  // No password — show login form
+  if (!password) {
+    return <LoginForm />;
   }
 
-  // Validate key (admin or tourism)
-  const accessResult = await validateAccess(accessKey, ['admin', 'tourism']);
-
-  if (!accessResult.valid) {
-    return <AccessKeyForm error={accessResult.error || 'Invalid or inactive access key'} />;
+  // Validate password
+  if (password !== DASHBOARD_PASSWORD) {
+    return <LoginForm error="סיסמה שגויה" />;
   }
 
-  const role = accessResult.role as 'admin' | 'tourism';
+  const role: 'admin' | 'tourism' = roleParam === 'tourism' ? 'tourism' : 'admin';
   const isAdmin = role === 'admin';
   const supabase = await createClient();
+
+  // Find or create an access key for this role (needed by dashboard actions)
+  let accessKey = '';
+  const { data: existingKey } = await supabase
+    .from('access_keys')
+    .select('key')
+    .eq('role', role)
+    .eq('active', true)
+    .limit(1)
+    .single();
+
+  if (existingKey) {
+    accessKey = existingKey.key;
+  } else {
+    // Auto-create an access key for this role
+    const generatedKey = `${role}_${crypto.randomUUID().slice(0, 12)}`;
+    const { data: newKey } = await supabase
+      .from('access_keys')
+      .insert({ key: generatedKey, role, active: true, label: `Auto-created ${role} key` })
+      .select('key')
+      .single();
+    accessKey = newKey?.key || generatedKey;
+  }
 
   // Fetch data in parallel
   const [guidesRes, groupsRes, postsCountRes, publishedRes, keysRes, settingsRes] = await Promise.all([
@@ -91,7 +113,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   );
 }
 
-function AccessKeyForm({ error }: { error?: string }) {
+function LoginForm({ error }: { error?: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary/95 to-secondary/70 p-4">
       <Card className="w-full max-w-md p-6 animate-fade-in-up">
@@ -100,34 +122,43 @@ function AccessKeyForm({ error }: { error?: string }) {
             <Shield size={28} className="text-primary" />
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-1">Agent Mary</h1>
-          <p className="text-sm text-gray-500">Enter your access key to continue</p>
+          <p className="text-sm text-gray-500">הזן סיסמה כדי להמשיך</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 text-center">
             {error}
           </div>
         )}
 
         <form action="/" method="GET" className="space-y-4">
           <input
-            type="text"
-            name="k"
-            placeholder="Access key"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400 font-mono text-center"
+            type="password"
+            name="p"
+            placeholder="סיסמה"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400 text-center text-lg"
             autoFocus
           />
-          <button
-            type="submit"
-            className="w-full px-4 py-3 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
-          >
-            Enter Dashboard
-          </button>
-        </form>
 
-        <p className="text-xs text-gray-400 text-center mt-4">
-          Contact your administrator for access
-        </p>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              name="r"
+              value="admin"
+              className="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+            >
+              כניסה כאדמין
+            </button>
+            <button
+              type="submit"
+              name="r"
+              value="tourism"
+              className="flex-1 px-4 py-3 bg-secondary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+            >
+              משרד התיירות
+            </button>
+          </div>
+        </form>
       </Card>
     </div>
   );
