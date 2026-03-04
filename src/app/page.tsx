@@ -19,7 +19,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   // Validate password
   if (password !== DASHBOARD_PASSWORD) {
-    return <LoginForm error="סיסמה שגויה" />;
+    return <LoginForm error="Incorrect password" />;
   }
 
   const role: 'admin' | 'tourism' = roleParam === 'tourism' ? 'tourism' : 'admin';
@@ -122,7 +122,7 @@ function LoginForm({ error }: { error?: string }) {
             <Shield size={28} className="text-primary" />
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-1">Agent Mary</h1>
-          <p className="text-sm text-gray-500">הזן סיסמה כדי להמשיך</p>
+          <p className="text-sm text-gray-500">Enter password to continue</p>
         </div>
 
         {error && (
@@ -135,7 +135,7 @@ function LoginForm({ error }: { error?: string }) {
           <input
             type="password"
             name="p"
-            placeholder="סיסמה"
+            placeholder="Password"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400 text-center text-lg"
             autoFocus
           />
@@ -147,7 +147,7 @@ function LoginForm({ error }: { error?: string }) {
               value="admin"
               className="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
             >
-              כניסה כאדמין
+              Admin Login
             </button>
             <button
               type="submit"
@@ -155,7 +155,7 @@ function LoginForm({ error }: { error?: string }) {
               value="tourism"
               className="flex-1 px-4 py-3 bg-secondary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
             >
-              משרד התיירות
+              Tourism Ministry
             </button>
           </div>
         </form>
