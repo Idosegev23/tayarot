@@ -93,14 +93,15 @@ export async function createGuideWithAuth(
       return { success: false, error: guideError.message };
     }
 
-    // 3. Send magic link invitation email
-    const { error: inviteError } = await adminClient.auth.admin.generateLink({
-      type: 'magiclink',
+    // 3. Send OTP login email to the new guide
+    const loginClient = await createClient();
+    const { error: otpError } = await loginClient.auth.signInWithOtp({
       email,
+      options: { shouldCreateUser: false },
     });
 
-    if (inviteError) {
-      logger.warn('Guide created but magic link failed', { error: inviteError.message });
+    if (otpError) {
+      logger.warn('Guide created but login email failed', { error: otpError.message });
       // Don't rollback — guide is created, admin can resend later
     }
 
