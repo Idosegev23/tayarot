@@ -16,8 +16,9 @@ import {
   seedDemoData,
   clearAllData,
 } from '@/app/actions/adminActions';
+import { createGuideWithAuth } from '@/app/actions/guideAuth';
 import { formatDate } from '@/lib/utils';
-import { Plus, Edit, Copy, Database, Trash2, Settings as SettingsIcon } from 'lucide-react';
+import { Plus, Edit, Copy, Database, Trash2, Settings as SettingsIcon, Mail } from 'lucide-react';
 import type { Guide, AccessKey, AppSettings, AccessRole } from '@/lib/types';
 
 interface AdminDashboardProps {
@@ -38,6 +39,10 @@ export function AdminDashboard({ accessKey, guides: initialGuides, accessKeys: i
   // Guide form state
   const [showGuideForm, setShowGuideForm] = useState(false);
   const [guideFormData, setGuideFormData] = useState({ id: '', slug: '', displayName: '' });
+
+  // Auth guide form state
+  const [showAuthGuideForm, setShowAuthGuideForm] = useState(false);
+  const [authGuideData, setAuthGuideData] = useState({ email: '', displayName: '', slug: '' });
 
   // Key form state
   const [showKeyForm, setShowKeyForm] = useState(false);
@@ -69,6 +74,32 @@ export function AdminDashboard({ accessKey, guides: initialGuides, accessKeys: i
       router.refresh();
     } else {
       toast.error(result.error || 'Failed to save guide');
+    }
+  };
+
+  // Auth Guide Actions
+  const handleCreateAuthGuide = async () => {
+    if (!authGuideData.email || !authGuideData.displayName || !authGuideData.slug) {
+      toast.error('Please fill all fields');
+      return;
+    }
+
+    const toastId = toast.loading('Creating guide with auth...');
+    const result = await createGuideWithAuth(
+      accessKey,
+      authGuideData.email,
+      authGuideData.displayName,
+      authGuideData.slug
+    );
+    toast.dismiss(toastId);
+
+    if (result.success) {
+      toast.success('Guide created! Magic link sent to their email.');
+      setShowAuthGuideForm(false);
+      setAuthGuideData({ email: '', displayName: '', slug: '' });
+      router.refresh();
+    } else {
+      toast.error(result.error || 'Failed to create guide');
     }
   };
 
@@ -217,11 +248,76 @@ export function AdminDashboard({ accessKey, guides: initialGuides, accessKeys: i
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Guides</h2>
-              <Button onClick={() => setShowGuideForm(true)} className="gap-2">
-                <Plus size={20} />
-                Add Guide
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => setShowAuthGuideForm(true)} className="gap-2">
+                  <Mail size={20} />
+                  Create with Auth
+                </Button>
+                <Button onClick={() => setShowGuideForm(true)} className="gap-2">
+                  <Plus size={20} />
+                  Add Guide
+                </Button>
+              </div>
             </div>
+
+            {/* Auth Guide Form */}
+            {showAuthGuideForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Guide with Authentication</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Creates a guide account with Supabase Auth. The guide will receive a magic link email to set up their account.
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={authGuideData.email}
+                      onChange={(e) => setAuthGuideData({ ...authGuideData, email: e.target.value })}
+                      placeholder="guide@example.com"
+                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Display Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={authGuideData.displayName}
+                      onChange={(e) => setAuthGuideData({ ...authGuideData, displayName: e.target.value })}
+                      placeholder="Sarah Cohen"
+                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Slug <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={authGuideData.slug}
+                      onChange={(e) => setAuthGuideData({ ...authGuideData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                      placeholder="sarah-cohen"
+                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <PrimaryButton onClick={handleCreateAuthGuide}>Create & Send Invite</PrimaryButton>
+                    <SecondaryButton onClick={() => {
+                      setShowAuthGuideForm(false);
+                      setAuthGuideData({ email: '', displayName: '', slug: '' });
+                    }}>
+                      Cancel
+                    </SecondaryButton>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Guide Form */}
             {showGuideForm && (

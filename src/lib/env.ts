@@ -18,6 +18,7 @@ interface OptionalEnvVars {
   // Optional for enhanced features
   UPSTASH_REDIS_REST_URL?: string;
   UPSTASH_REDIS_REST_TOKEN?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
   VERCEL_URL?: string;
   NODE_ENV?: string;
 }
@@ -108,6 +109,7 @@ export function getOptionalEnv(): OptionalEnvVars {
   return {
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     VERCEL_URL: process.env.VERCEL_URL,
     NODE_ENV: process.env.NODE_ENV || 'development',
   };

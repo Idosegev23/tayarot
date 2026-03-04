@@ -19,6 +19,91 @@ interface ChatContext {
   hasPhotos?: boolean;
   locationContext?: string;
   coordinates?: { lat: number; lng: number };
+  groupId?: string;
+  guideName?: string;
+}
+
+async function getGroupItineraryContext(groupId: string): Promise<string> {
+  try {
+    const supabase = await createClient();
+
+    // Get group with start_date
+    const { data: group } = await supabase
+      .from('groups')
+      .select('start_date, name')
+      .eq('id', groupId)
+      .single();
+
+    if (!group) return '';
+
+    // Calculate current day number
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    let dayNumber = 1;
+    if (group.start_date) {
+      const start = new Date(group.start_date);
+      const diffMs = now.getTime() - start.getTime();
+      dayNumber = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1);
+    }
+
+    // Get today's itinerary day
+    const { data: day } = await supabase
+      .from('group_itinerary_days')
+      .select('id, day_number, date, title')
+      .eq('group_id', groupId)
+      .eq('day_number', dayNumber)
+      .single();
+
+    if (!day) return `Group: ${group.name}\nDay ${dayNumber} (no itinerary set)`;
+
+    // Get stops for today
+    const { data: stops } = await supabase
+      .from('group_itinerary_stops')
+      .select('*')
+      .eq('day_id', day.id)
+      .order('order_index');
+
+    if (!stops || stops.length === 0) {
+      return `Group: ${group.name}\nDay ${dayNumber}: ${day.title || 'No title'} (no stops)`;
+    }
+
+    // Build itinerary context
+    const currentTime = now.toTimeString().slice(0, 5); // HH:MM
+    let currentStop = '';
+    let nextStop = '';
+
+    for (let i = 0; i < stops.length; i++) {
+      const s = stops[i];
+      if (s.time && s.time <= currentTime) {
+        currentStop = s.location_name;
+        if (i + 1 < stops.length) {
+          nextStop = `${stops[i + 1].location_name}${stops[i + 1].time ? ` at ${stops[i + 1].time}` : ''}`;
+        }
+      }
+    }
+
+    // If no stop matched by time, use first stop
+    if (!currentStop && stops.length > 0) {
+      currentStop = stops[0].location_name;
+      if (stops.length > 1) {
+        nextStop = `${stops[1].location_name}${stops[1].time ? ` at ${stops[1].time}` : ''}`;
+      }
+    }
+
+    const stopsText = stops
+      .map(s => `  ${s.time || '??:??'} (${s.duration_minutes || '?'} min) — ${s.location_name}${s.description ? ': ' + s.description : ''}`)
+      .join('\n');
+
+    return `Group: ${group.name}
+TODAY'S ITINERARY (Day ${dayNumber} - ${day.title || 'Untitled'}):
+${stopsText}
+
+CURRENT TIME: ${currentTime}
+${currentStop ? `The group should currently be at: ${currentStop}` : ''}
+${nextStop ? `Next stop: ${nextStop}` : ''}`;
+  } catch {
+    return '';
+  }
 }
 
 async function getGuideItinerary(guideSlug: string): Promise<ItineraryStop[]> {
@@ -77,9 +162,15 @@ export async function sendChatMessage(
       return { success: false, error: 'Gemini API key not configured' };
     }
 
-    // Look up itinerary for next-stop context
+    // Build itinerary context for group-based chat
+    let itineraryBlock = '';
+    if (context?.groupId) {
+      itineraryBlock = await getGroupItineraryContext(context.groupId);
+    }
+
+    // Legacy: Look up itinerary for next-stop context
     let nextStopInfo = '';
-    if (context?.coordinates) {
+    if (!context?.groupId && context?.coordinates) {
       const stops = await getGuideItinerary(guideSlug);
       if (stops.length > 0) {
         const nextStop = findNextItineraryStop(context.coordinates, stops);
@@ -95,7 +186,35 @@ export async function sendChatMessage(
         ? `TOURIST LOCATION:\nAt or near: ${context.location}${nextStopInfo ? `\n${nextStopInfo}` : ''}`
         : 'TOURIST LOCATION: Unknown';
 
-    const systemInstruction = `You are Mary, a warm and knowledgeable virtual tour guide for Israel and the Holy Land.
+    // Determine persona name
+    const firstName = context?.guideName?.split(' ')[0] || '';
+    const personaName = firstName ? `${firstName} Co-Guide` : 'Mary';
+
+    const systemInstruction = context?.groupId
+      ? `You are ${personaName}, a virtual companion for tourists traveling with guide ${context.guideName || guideSlug} in Israel.
+
+PERSONALITY:
+- Warm, helpful, and knowledgeable about Israel
+- Concise: 2-3 sentences max unless the tourist asks for more detail
+- You know the group's itinerary and can help tourists navigate their day
+- Gently encourage sharing photos and experiences
+
+${itineraryBlock}
+
+${locationBlock}
+
+WHEN YOU KNOW THE TOURIST'S LOCATION:
+- Share a brief fascinating fact about where they are
+- Reference the itinerary if relevant (are they at a scheduled stop?)
+- Suggest something specific they should not miss
+- Build anticipation for the next stop if you know it
+
+WHEN LOCATION IS UNKNOWN:
+- Reference the current itinerary to suggest where they might be
+- Ask what they're seeing or doing
+
+${context?.hasPhotos ? 'The tourist has shared photos. Encourage them to create a post!' : ''}`
+      : `You are Mary, a warm and knowledgeable virtual tour guide for Israel and the Holy Land.
 
 PERSONALITY:
 - Friendly, spiritual yet inclusive, genuinely helpful

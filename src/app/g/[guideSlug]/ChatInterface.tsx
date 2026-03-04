@@ -18,15 +18,22 @@ interface Message {
 interface ChatInterfaceProps {
   guideSlug: string;
   guideName: string;
+  guideId?: string;
+  groupId?: string;
+  groupName?: string;
+  groupSlug?: string;
 }
 
-export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
+export function ChatInterface({ guideSlug, guideName, guideId, groupId, groupName, groupSlug }: ChatInterfaceProps) {
   const router = useRouter();
+  const firstName = guideName?.split(' ')[0] || '';
+  const personaName = groupId && firstName ? `${firstName} Co-Guide` : 'Mary';
+  const greeting = groupId && firstName
+    ? `Hi! I'm ${personaName}, your virtual companion for this trip with ${guideName}. How's your journey going?`
+    : "Hi! I'm Mary, your virtual Israel guide. I'm here to help you get the most out of your journey. How is your trip going?";
+
   const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: "Hi! I'm Mary, your virtual Israel guide. I'm here to help you get the most out of your journey. How is your trip going?",
-    },
+    { role: 'assistant', content: greeting },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,6 +84,8 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
         hasPhotos: false,
         locationContext: locationContext || undefined,
         coordinates: coords ? { lat: coords.lat, lng: coords.lng } : undefined,
+        groupId: groupId || undefined,
+        guideName: guideName || undefined,
       });
 
       if (result.success && result.message) {
@@ -128,7 +137,7 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
             <p className="text-sm font-medium">{guideName}</p>
             <p className="text-xs opacity-90 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-status-pulse inline-block" />
-              Agent Mary
+              {personaName}
               {nearestLocation && (
                 <span className="ml-1 inline-flex items-center gap-1">
                   <MapPin size={10} />
@@ -264,7 +273,7 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Ask Mary anything..."
+              placeholder={`Ask ${personaName} anything...`}
               disabled={loading}
               className="flex-1 px-4 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-full focus:border-primary focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 placeholder:text-gray-400"
             />

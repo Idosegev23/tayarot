@@ -9,9 +9,110 @@ export interface Guide {
   created_at: string;
 }
 
+export interface GuideWithAuth extends Guide {
+  auth_user_id?: string;
+  email?: string;
+  phone?: string;
+  profile_image_url?: string;
+  updated_at?: string;
+}
+
+// Groups
+export type GroupStatus = 'active' | 'completed' | 'archived';
+
+export interface Group {
+  id: string;
+  guide_id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+  status: GroupStatus;
+  created_at: string;
+  updated_at: string;
+  guide?: Guide;
+}
+
+export interface GroupItineraryDay {
+  id: string;
+  group_id: string;
+  day_number: number;
+  date?: string;
+  title?: string;
+  description?: string;
+  created_at: string;
+  stops?: GroupItineraryStop[];
+}
+
+export interface GroupItineraryStop {
+  id: string;
+  day_id: string;
+  order_index: number;
+  time?: string;
+  location_name: string;
+  lat?: number;
+  lng?: number;
+  description?: string;
+  fun_facts?: string;
+  duration_minutes?: number;
+}
+
+// Itinerary builder draft types (client-side before save)
+export interface ItineraryDayDraft {
+  tempId: string;
+  day_number: number;
+  date?: string;
+  title?: string;
+  stops: ItineraryStopDraft[];
+}
+
+export interface ItineraryStopDraft {
+  tempId: string;
+  order_index: number;
+  location_name: string;
+  time?: string;
+  duration_minutes?: number;
+  description?: string;
+  fun_facts?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// Gemini-parsed itinerary structure
+export interface ParsedItinerary {
+  days: {
+    day_number: number;
+    date?: string;
+    title?: string;
+    stops: {
+      location_name: string;
+      time?: string;
+      duration_minutes?: number;
+      description?: string;
+      fun_facts?: string;
+      lat?: number;
+      lng?: number;
+    }[];
+  }[];
+}
+
+// Canvas image editor overlay
+export interface CanvasOverlay {
+  id: string;
+  type: 'location' | 'experience' | 'verse' | 'date';
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  visible: boolean;
+}
+
 export interface Post {
   id: string;
   guide_id: string;
+  group_id?: string;
   tourist_name?: string;
   location_label: string;
   location_lat?: number | null;
