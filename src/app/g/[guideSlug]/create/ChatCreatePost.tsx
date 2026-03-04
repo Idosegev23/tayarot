@@ -135,42 +135,55 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
     }
   };
 
+  const stepIndex = { welcome: 0, upload: 1, editor: 2, preview: 3, done: 4 }[step];
+  const progressPercent = step === 'done' ? 100 : (stepIndex / 4) * 100;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-light/30 to-white pb-20">
       <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
-        {/* Back Button — step-aware */}
-        <button
-          onClick={() => {
-            if (step === 'upload') setStep('welcome');
-            else if (step === 'editor') setStep('upload');
-            else if (step === 'preview') setStep('editor');
-            else router.back();
-          }}
-          className="flex items-center gap-1 text-secondary hover:text-primary transition-colors text-sm"
-        >
-          <ArrowLeft size={16} />
-          <span>Back</span>
-        </button>
+        {/* Progress Bar + Back Button */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (step === 'upload') setStep('welcome');
+              else if (step === 'editor') setStep('upload');
+              else if (step === 'preview') setStep('editor');
+              else router.back();
+            }}
+            className="flex items-center gap-1 text-secondary hover:text-primary transition-colors text-sm flex-shrink-0"
+          >
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+          {step !== 'done' && (
+            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Step 1: Welcome & Upload */}
         {step === 'welcome' && (
           <>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
-                <img 
-                  src="/Logo.png" 
-                  alt="Mary" 
+            <div className="flex items-start gap-3 animate-slide-in-left">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+                <img
+                  src="/Logo.png"
+                  alt="Mary"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <Card className="flex-1 bg-white shadow-sm p-3">
+              <Card className="flex-1 bg-white shadow-sm p-3 border-l-3 border-l-primary">
                 <p className="text-gray-900 text-sm">
                   Share a photo from today! Upload the moment that stood out to you.
                 </p>
               </Card>
             </div>
 
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 animate-fade-in-up stagger-2">
               <div className="w-12 flex-shrink-0"></div>
               <div className="flex-1">
                 <ImageUploader maxImages={1} onImagesChange={setImages} onExifGps={handleExifGps} existingImages={images} />
@@ -179,7 +192,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                     onClick={() => setStep('upload')}
                     fullWidth
                     size="md"
-                    className="mt-3"
+                    className="mt-3 animate-fade-in-up"
                   >
                     Continue
                   </PrimaryButton>
@@ -192,32 +205,33 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 2: Location & Description */}
         {step === 'upload' && (
           <>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
-                <img 
-                  src="/Logo.png" 
-                  alt="Mary" 
+            <div className="flex items-start gap-3 animate-slide-in-left">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+                <img
+                  src="/Logo.png"
+                  alt="Mary"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <Card className="flex-1 bg-white shadow-sm p-3">
+              <Card className="flex-1 bg-white shadow-sm p-3 border-l-3 border-l-primary">
                 <p className="text-gray-900 text-sm">
-                  Beautiful! 🙏 Tell me in 1-2 lines what this moment meant to you.
+                  Beautiful! Tell me in 1-2 lines what this moment meant to you.
                 </p>
               </Card>
             </div>
 
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 animate-fade-in-up stagger-2">
               <div className="w-12 flex-shrink-0"></div>
               <div className="flex-1 space-y-3">
                 <div className="relative">
+                  <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <select
                     value={location}
                     onChange={(e) => {
                       setLocation(e.target.value);
                       setLocationAutoSet(false);
                     }}
-                    className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:border-primary focus:outline-none"
+                    className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors"
                   >
                     <option value="">Where were you?</option>
                     {LOCATIONS.map((loc) => (
@@ -242,9 +256,12 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                     onChange={(e) => setExperienceText(e.target.value)}
                     maxLength={500}
                     rows={3}
-                    className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:border-primary focus:outline-none resize-none placeholder:text-gray-500"
+                    className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:border-primary focus:outline-none resize-none placeholder:text-gray-500 transition-colors"
                   />
-                  <span className="absolute bottom-2 right-3 text-xs text-gray-500">
+                  <span className={`absolute bottom-2 right-3 text-xs transition-colors ${
+                    experienceText.length > 450 ? 'text-red-500 font-medium' :
+                    experienceText.length > 350 ? 'text-warm' : 'text-gray-400'
+                  }`}>
                     {experienceText.length}/500
                   </span>
                 </div>
@@ -268,22 +285,22 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 3: Image Editor */}
         {step === 'editor' && (
           <>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+            <div className="flex items-start gap-3 animate-slide-in-left">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                 <img
                   src="/Logo.png"
                   alt="Mary"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <Card className="flex-1 bg-white shadow-sm p-3">
+              <Card className="flex-1 bg-white shadow-sm p-3 border-l-3 border-l-primary">
                 <p className="text-gray-900 text-sm">
                   Let&apos;s style your photo! Toggle the elements you want on your image, then tap &ldquo;Create Image&rdquo;.
                 </p>
               </Card>
             </div>
 
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 animate-fade-in-up stagger-2">
               <div className="w-12 flex-shrink-0"></div>
               <div className="flex-1">
                 <ImageEditor
@@ -350,30 +367,30 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 5: Preview Generated Image */}
         {step === 'preview' && (
           <>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
-                <img 
-                  src="/Logo.png" 
-                  alt="Mary" 
+            <div className="flex items-start gap-3 animate-slide-in-left">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+                <img
+                  src="/Logo.png"
+                  alt="Mary"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <Card className="flex-1 bg-white shadow-sm p-3">
+              <Card className="flex-1 bg-white shadow-sm p-3 border-l-3 border-l-primary">
                 <p className="text-gray-900 text-sm">
-                  ✨ Here's your beautiful image! Take a moment to see how it looks.
+                  Here&apos;s your beautiful image! Take a moment to see how it looks.
                 </p>
               </Card>
             </div>
 
             {/* Display Generated Image */}
             {generatedImageUrl && (
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2 animate-bounce-in stagger-2">
                 <div className="w-12 flex-shrink-0"></div>
-                <Card className="flex-1 overflow-hidden shadow-lg">
-                  <img 
-                    src={generatedImageUrl} 
-                    alt="AI Generated Post" 
-                    className="w-full h-auto"
+                <Card className="flex-1 overflow-hidden shadow-lg p-0">
+                  <img
+                    src={generatedImageUrl}
+                    alt="AI Generated Post"
+                    className="w-full h-auto rounded-2xl"
                   />
                 </Card>
               </div>
@@ -381,10 +398,10 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
 
             {/* Verse Display */}
             {biblicalVerse && (
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2 animate-fade-in-up stagger-3">
                 <div className="w-12 flex-shrink-0"></div>
                 <Card className="flex-1 bg-gradient-to-br from-warm/10 to-accent/5 border border-warm/30 shadow-sm p-4">
-                  <p className="text-sm italic text-gray-700 mb-2">"{biblicalVerse}"</p>
+                  <p className="text-sm italic text-gray-700 mb-2">&ldquo;{biblicalVerse}&rdquo;</p>
                   {verseReference && (
                     <p className="text-xs text-warm font-medium">— {verseReference}</p>
                   )}
@@ -423,17 +440,17 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
         {/* Step 6: Done */}
         {step === 'done' && (
           <>
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
-                <img 
-                  src="/Logo.png" 
-                  alt="Mary" 
+            <div className="flex items-start gap-3 animate-slide-in-left">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+                <img
+                  src="/Logo.png"
+                  alt="Mary"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <Card className="flex-1 bg-white shadow-sm p-3">
+              <Card className="flex-1 bg-gradient-to-r from-white to-secondary/5 shadow-sm p-3 border-l-3 border-l-secondary">
                 <p className="text-gray-900 text-sm">
-                  All set! ✅ Thank you for being part of this journey 🙏
+                  All set! Thank you for being part of this journey.
                 </p>
               </Card>
             </div>
@@ -447,7 +464,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                     onClick={() => setShowShareModal(true)}
                     fullWidth
                     size="lg"
-                    className="bg-gradient-to-r from-warm to-accent hover:from-warm/90 hover:to-accent/90"
+                    className="bg-gradient-to-r from-warm to-accent hover:from-warm/90 hover:to-accent/90 animate-fade-in-up stagger-1"
                   >
                     <Share2 size={18} className="mr-2" />
                     Share My Post
@@ -456,7 +473,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                     onClick={() => router.push(`/g/${guideSlug}/post/${createdPostId}`)}
                     fullWidth
                     size="md"
-                    className="border-warm text-warm hover:bg-warm/10"
+                    className="border-warm text-warm hover:bg-warm/10 animate-fade-in-up stagger-2"
                   >
                     <Send size={18} className="mr-2" />
                     Submit for Publishing
@@ -465,6 +482,7 @@ export function ChatCreatePost({ guideSlug }: ChatCreatePostProps) {
                     onClick={() => router.push(`/g/${guideSlug}`)}
                     fullWidth
                     size="md"
+                    className="animate-fade-in-up stagger-3"
                   >
                     Back to Chat
                   </SecondaryButton>

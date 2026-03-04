@@ -107,14 +107,15 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
       {/* Floating Action Button */}
       <button
         onClick={() => router.push(`/g/${guideSlug}/create`)}
-        className="fixed bottom-20 right-4 z-20 w-14 h-14 bg-warm hover:bg-warm/90 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:shadow-xl"
+        className="fixed bottom-20 right-4 z-20 w-14 h-14 bg-gradient-to-br from-warm to-accent text-white rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95 hover:scale-110 hover:shadow-xl animate-bounce-in"
+        style={{ animationDelay: '1s' }}
         aria-label="Share photos"
       >
         <Camera size={24} />
       </button>
 
       {/* Header */}
-      <div className="bg-primary text-white px-4 py-4 shadow-sm flex-shrink-0">
+      <div className="bg-gradient-to-r from-primary via-primary to-secondary/80 text-white px-4 py-4 shadow-md flex-shrink-0 relative">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden p-1.5 flex-shrink-0 shadow-md">
             <img
@@ -125,33 +126,38 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">{guideName}</p>
-            <p className="text-xs opacity-80">
+            <p className="text-xs opacity-90 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-status-pulse inline-block" />
               Agent Mary
               {nearestLocation && (
-                <span className="ml-2 inline-flex items-center gap-1">
+                <span className="ml-1 inline-flex items-center gap-1">
                   <MapPin size={10} />
                   {nearestLocation.poi ? nearestLocation.poi.name : nearestLocation.location.name}
                 </span>
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <Link
               href={`/g/${guideSlug}/posts`}
               className="flex items-center gap-1 text-white/80 hover:text-white text-xs transition-colors"
               title="My Posts"
             >
-              <FileText size={16} />
+              <FileText size={18} />
             </Link>
             <Link
               href={`/g/${guideSlug}/gallery`}
               className="flex items-center gap-1 text-white/80 hover:text-white text-xs transition-colors"
               title="Gallery"
             >
-              <Images size={16} />
+              <Images size={18} />
             </Link>
           </div>
         </div>
+        {/* Wave divider */}
+        <svg className="absolute -bottom-1 left-0 w-full h-3 text-light/30" viewBox="0 0 1440 12" fill="none" preserveAspectRatio="none">
+          <path d="M0 4C360 0 720 12 1080 8C1260 6 1380 2 1440 4V12H0V4Z" fill="currentColor" />
+        </svg>
       </div>
 
       {/* Location Permission Banner */}
@@ -171,9 +177,14 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-3 py-4 space-y-3">
           {messages.map((msg, index) => (
-            <div key={index} className="flex items-start gap-3">
+            <div
+              key={index}
+              className={`flex items-start gap-3 ${
+                msg.role === 'user' ? 'animate-slide-in-right' : 'animate-slide-in-left'
+              }`}
+            >
               {msg.role === 'assistant' && (
-                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                   <img
                     src="/Logo.png"
                     alt="Mary"
@@ -184,8 +195,8 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
               <Card
                 className={`flex-1 shadow-sm p-3 ${
                   msg.role === 'user'
-                    ? 'bg-secondary/10 border-secondary/20 ml-10'
-                    : 'bg-white'
+                    ? 'bg-gradient-to-r from-secondary/10 to-secondary/5 border border-secondary/20 ml-10'
+                    : 'bg-white border-l-3 border-l-primary'
                 }`}
               >
                 <p className="text-gray-900 text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -195,16 +206,20 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
           ))}
 
           {loading && (
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
+            <div className="flex items-start gap-3 animate-slide-in-left">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center overflow-hidden flex-shrink-0 p-1 shadow-sm">
                 <img
                   src="/Logo.png"
                   alt="Mary"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <Card className="flex-1 bg-white shadow-sm p-3">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <Card className="flex-1 bg-white shadow-sm p-3 border-l-3 border-l-primary">
+                <div className="flex gap-1.5 py-1 px-1">
+                  <span className="w-2 h-2 rounded-full bg-gray-400" style={{ animation: 'typing-dot 1.4s infinite', animationDelay: '0s' }} />
+                  <span className="w-2 h-2 rounded-full bg-gray-400" style={{ animation: 'typing-dot 1.4s infinite', animationDelay: '0.2s' }} />
+                  <span className="w-2 h-2 rounded-full bg-gray-400" style={{ animation: 'typing-dot 1.4s infinite', animationDelay: '0.4s' }} />
+                </div>
               </Card>
             </div>
           )}
@@ -221,14 +236,14 @@ export function ChatInterface({ guideSlug, guideName }: ChatInterfaceProps) {
                       ? `Tell me about ${nearestLocation.location.name}`
                       : "What's the significance of Jerusalem?"
                   )}
-                  className="text-xs h-auto py-2"
+                  className="text-xs h-auto py-2 animate-fade-in-up stagger-1"
                 >
                   {nearestLocation ? `About ${nearestLocation.location.name}` : 'Ask about location'}
                 </SecondaryButton>
                 <SecondaryButton
                   size="sm"
                   onClick={() => handleQuickAction("What's on the route today?")}
-                  className="text-xs h-auto py-2"
+                  className="text-xs h-auto py-2 animate-fade-in-up stagger-2"
                 >
                   Today&apos;s route
                 </SecondaryButton>

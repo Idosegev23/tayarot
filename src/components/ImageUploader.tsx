@@ -158,10 +158,10 @@ export function ImageUploader({
         <div className="space-y-2">
           <div
             className={cn(
-              'relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
+              'relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200',
               dragActive
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-300 hover:border-primary hover:bg-gray-50',
+                ? 'border-primary bg-primary/5 scale-[1.02]'
+                : 'border-gray-300 hover:border-primary hover:bg-primary/5',
               uploading && 'opacity-50 pointer-events-none'
             )}
             onDragEnter={handleDrag}
@@ -209,7 +209,7 @@ export function ImageUploader({
             type="button"
             onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
             disabled={uploading}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium sm:hidden"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg hover:shadow-primary/25 transition-all text-sm font-medium sm:hidden"
           >
             <Camera size={18} />
             Take a Photo
@@ -223,7 +223,7 @@ export function ImageUploader({
           {images.map((url, index) => (
             <div
               key={index}
-              className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 group"
+              className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 group animate-bounce-in"
             >
               <Image
                 src={url}

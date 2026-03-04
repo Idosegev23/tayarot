@@ -93,48 +93,47 @@ export function GuideDashboard({ guide, posts: initialPosts, accessKey }: GuideD
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header Banner */}
-      <div className="bg-primary text-white px-4 py-3">
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-white px-4 py-4 shadow-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <p className="text-sm font-medium">Demo Access: Guide - {guide.display_name}</p>
-          <button
-            onClick={fetchLatestPosts}
-            className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
+          <div>
+            <p className="text-sm font-medium">{guide.display_name}</p>
+            <p className="text-xs text-white/70">Guide Dashboard</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-xs text-white/60">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-status-pulse" />
+              Auto-refresh
+            </span>
+            <button
+              onClick={fetchLatestPosts}
+              className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20"
+            >
+              <RefreshCw size={14} />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="text-center">
-              <p className="text-3xl font-bold text-primary">{stats.total}</p>
-              <p className="text-sm text-gray-600 mt-1">Total Posts</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center">
-              <p className="text-3xl font-bold text-gray-600">{stats.draft}</p>
-              <p className="text-sm text-gray-600 mt-1">Drafts</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center">
-              <p className="text-3xl font-bold text-secondary">{stats.approved}</p>
-              <p className="text-sm text-gray-600 mt-1">Approved</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center">
-              <p className="text-3xl font-bold text-green-600">{stats.published}</p>
-              <p className="text-sm text-gray-600 mt-1">Published</p>
-            </CardContent>
-          </Card>
+          {[
+            { label: 'Total Posts', value: stats.total, color: 'from-primary to-secondary', textColor: 'text-primary' },
+            { label: 'Drafts', value: stats.draft, color: 'from-gray-400 to-gray-500', textColor: 'text-gray-600' },
+            { label: 'Approved', value: stats.approved, color: 'from-secondary to-green-500', textColor: 'text-secondary' },
+            { label: 'Published', value: stats.published, color: 'from-green-500 to-green-600', textColor: 'text-green-600' },
+          ].map((kpi, i) => (
+            <Card key={kpi.label} className={`overflow-hidden animate-fade-in-up stagger-${i + 1}`}>
+              <div className={`h-1 -mx-4 -mt-4 mb-3 bg-gradient-to-r ${kpi.color}`} />
+              <CardContent className="text-center">
+                <p className={`text-3xl font-bold ${kpi.textColor}`}>{kpi.value}</p>
+                <p className="text-sm text-gray-500 mt-1">{kpi.label}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Filters */}
@@ -181,8 +180,8 @@ export function GuideDashboard({ guide, posts: initialPosts, accessKey }: GuideD
           />
         ) : (
           <div className="space-y-4">
-            {filteredPosts.map((post) => (
-              <Card key={post.id}>
+            {filteredPosts.map((post, i) => (
+              <Card key={post.id} className={`hover:-translate-y-0.5 transition-all animate-fade-in-up ${i < 6 ? `stagger-${i + 1}` : ''}`}>
                 <div className="flex gap-4">
                   {/* Thumbnail */}
                   {post.images[0] && (

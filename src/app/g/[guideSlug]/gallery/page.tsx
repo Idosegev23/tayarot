@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { getAppUrl } from '@/lib/env';
-import { formatDate, truncateText } from '@/lib/utils';
+import { truncateText } from '@/lib/utils';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Chip } from '@/components/ui/Chip';
 import Image from 'next/image';
@@ -87,12 +87,12 @@ export default async function GalleryPage({ params }: PageProps) {
   const posts = await getPublishedPosts(guide.id);
 
   return (
-    <div className="min-h-screen bg-light">
+    <div className="min-h-screen bg-gradient-to-b from-light to-white">
       <AppHeader guideName={guide.display_name} showBadge />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {/* Navigation and title */}
-        <div className="mb-6">
+        <div className="mb-6 animate-fade-in-up">
           <Link
             href={`/g/${guideSlug}`}
             className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-3"
@@ -123,19 +123,19 @@ export default async function GalleryPage({ params }: PageProps) {
 
         {/* Empty state */}
         {posts.length === 0 && (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="text-center py-16 animate-fade-in-up">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
+                width="32"
+                height="32"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-gray-400"
+                className="text-primary/50"
               >
                 <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
                 <circle cx="9" cy="9" r="2" />
@@ -150,18 +150,18 @@ export default async function GalleryPage({ params }: PageProps) {
             </p>
             <Link
               href={`/g/${guideSlug}`}
-              className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-5 py-2.5 rounded-full text-sm font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
             >
               Share your experience
             </Link>
           </div>
         )}
 
-        {/* Post grid */}
+        {/* Post grid — Instagram style */}
         {posts.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {posts.map((post) => (
-              <GalleryCard key={post.id} post={post} guideSlug={guideSlug} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-1 md:gap-1.5">
+            {posts.map((post, index) => (
+              <GalleryCard key={post.id} post={post} guideSlug={guideSlug} index={index} />
             ))}
           </div>
         )}
@@ -170,22 +170,22 @@ export default async function GalleryPage({ params }: PageProps) {
   );
 }
 
-function GalleryCard({ post, guideSlug }: { post: Post; guideSlug: string }) {
+function GalleryCard({ post, guideSlug, index }: { post: Post; guideSlug: string; index: number }) {
   const thumbnail = post.images?.[0];
   const isBase64 = thumbnail?.startsWith('data:');
   const isUrl = thumbnail?.startsWith('http');
   const hasImage = thumbnail && (isBase64 || isUrl);
+  const staggerClass = index < 6 ? `stagger-${Math.min(index + 1, 6)}` : '';
 
   return (
     <Link
       href={`/g/${guideSlug}/post/${post.id}`}
-      className="group block rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow"
+      className={`group block overflow-hidden bg-gray-100 relative animate-fade-in ${staggerClass}`}
     >
       {/* Square thumbnail */}
-      <div className="relative w-full aspect-square bg-gray-100">
+      <div className="relative w-full aspect-square">
         {hasImage ? (
           isBase64 ? (
-            // Base64 images cannot use next/image optimisation
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={thumbnail}
@@ -202,7 +202,7 @@ function GalleryCard({ post, guideSlug }: { post: Post; guideSlug: string }) {
             />
           )
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
+          <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="40"
@@ -221,6 +221,18 @@ function GalleryCard({ post, guideSlug }: { post: Post; guideSlug: string }) {
           </div>
         )}
 
+        {/* Hover overlay — Instagram style */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="text-white text-center px-2">
+            <p className="text-sm font-semibold drop-shadow-md">{post.location_label}</p>
+            {post.experience_text && (
+              <p className="text-xs mt-1 line-clamp-2 drop-shadow-md opacity-90">
+                {truncateText(post.experience_text, 60)}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Style badge */}
         {post.style === 'holy_land' && (
           <div className="absolute top-2 left-2">
@@ -229,26 +241,6 @@ function GalleryCard({ post, guideSlug }: { post: Post; guideSlug: string }) {
             </Chip>
           </div>
         )}
-      </div>
-
-      {/* Card info */}
-      <div className="p-3">
-        <h3 className="text-sm font-semibold text-foreground leading-tight truncate">
-          {post.location_label}
-        </h3>
-        <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-          {truncateText(post.experience_text, 80)}
-        </p>
-        <div className="flex items-center justify-between mt-2">
-          {post.tourist_name && (
-            <span className="text-xs text-gray-400 truncate max-w-[60%]">
-              {post.tourist_name}
-            </span>
-          )}
-          <span className="text-xs text-gray-400 ml-auto">
-            {formatDate(post.created_at)}
-          </span>
-        </div>
       </div>
     </Link>
   );

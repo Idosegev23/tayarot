@@ -23,8 +23,8 @@ export function Button({
         'font-medium rounded-xl transition-all active:scale-95',
         'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
         // Variants
-        variant === 'primary' && 'bg-primary text-white hover:bg-opacity-90 shadow-md',
-        variant === 'secondary' && 'bg-secondary text-white hover:bg-opacity-90 shadow-md',
+        variant === 'primary' && 'bg-primary text-white hover:bg-opacity-90 shadow-md hover:shadow-lg hover:shadow-primary/25',
+        variant === 'secondary' && 'bg-secondary text-white hover:bg-opacity-90 shadow-md hover:shadow-lg hover:shadow-secondary/25',
         variant === 'outline' && 'border-2 border-secondary text-secondary hover:bg-secondary hover:text-white',
         variant === 'ghost' && 'text-accent hover:bg-light/30',
         // Sizes

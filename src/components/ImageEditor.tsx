@@ -117,7 +117,7 @@ export function ImageEditor({
   return (
     <div className="space-y-4">
       {/* Live Preview */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-900 shadow-lg">
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gray-900 shadow-xl animate-float">
         {/* Base Image */}
         <img
           src={imageUrl}
@@ -220,7 +220,10 @@ export function ImageEditor({
           disabled={isGenerating || loadingVerse || !hasAnyOverlay}
           fullWidth
           size="md"
-          className="bg-gradient-to-r from-warm to-accent hover:from-warm/90 hover:to-accent/90"
+          className={cn(
+            'bg-gradient-to-r from-warm to-accent hover:from-warm/90 hover:to-accent/90',
+            isGenerating && 'shimmer'
+          )}
         >
           {isGenerating ? (
             <>
