@@ -126,6 +126,12 @@ export function UnifiedDashboard({
             accessKeys={isAdmin ? accessKeys : undefined}
             settings={isAdmin ? settings : undefined}
             guides={guidesList}
+            groups={groups.map(g => ({
+              slug: g.slug,
+              name: g.name,
+              guideSlug: g.guide?.slug || '',
+              participantsCount: g.participantsCount,
+            }))}
           />
         )}
 

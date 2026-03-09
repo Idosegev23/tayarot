@@ -9,11 +9,16 @@ export default function NotFound() {
         <FileQuestion size={64} className="mx-auto text-gray-400 mb-4" />
         <h1 className="text-4xl font-bold text-gray-900 mb-2">404</h1>
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Page Not Found</h2>
-        <p className="text-gray-600 mb-8">
-          The page you're looking for doesn't exist or has been moved.
+        <p className="text-gray-600 mb-4">
+          This guide or group page doesn&apos;t exist yet.
+        </p>
+        <p className="text-sm text-gray-500 mb-8">
+          If you&apos;re a tester, ask the admin to set up demo data first.
+          <br />
+          If you received this link, verify the URL with the person who sent it.
         </p>
         <Link href="/">
-          <PrimaryButton>Go Home</PrimaryButton>
+          <PrimaryButton>Go to Dashboard</PrimaryButton>
         </Link>
       </div>
     </div>

@@ -172,9 +172,14 @@ export function TouristGate({
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-              <AlertCircle size={16} className="flex-shrink-0" />
-              <span>{error}</span>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} className="flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+              <p className="text-xs text-red-500 mt-1 ml-6">
+                Check the exact spelling with your guide. Names are not case-sensitive.
+              </p>
             </div>
           )}
 

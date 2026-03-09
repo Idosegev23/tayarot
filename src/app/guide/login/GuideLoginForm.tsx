@@ -2,21 +2,44 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { sendGuideLoginOTP, verifyGuideOTP } from '@/app/actions/guideAuth';
+import { sendGuideLoginOTP, verifyGuideOTP, loginGuideWithPassword } from '@/app/actions/guideAuth';
 
 type Step = 'email' | 'otp';
+type LoginMode = 'otp' | 'password';
 
 export function GuideLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mode, setMode] = useState<LoginMode>('password');
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
   const urlError = searchParams.get('error');
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) return;
+
+    setLoading(true);
+    setError('');
+
+    const result = await loginGuideWithPassword(email.trim(), password.trim());
+
+    setLoading(false);
+
+    if (result.success) {
+      const redirect = searchParams.get('redirect') || '/guide/dashboard';
+      router.push(redirect);
+      router.refresh();
+    } else {
+      setError(result.error || 'Login failed');
+    }
+  };
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +102,66 @@ export function GuideLoginForm() {
         </div>
       )}
 
-      {step === 'email' ? (
+      {/* Mode toggle */}
+      <div className="flex rounded-xl bg-gray-100 p-1 mb-4">
+        <button
+          type="button"
+          onClick={() => { setMode('password'); setError(''); setMessage(''); }}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'password' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+        >
+          Password
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode('otp'); setError(''); setMessage(''); }}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'otp' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+        >
+          Email Code
+        </button>
+      </div>
+
+      {mode === 'password' ? (
+        <form onSubmit={handlePasswordLogin} className="space-y-4">
+          <div>
+            <label htmlFor="email-pw" className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
+            </label>
+            <input
+              id="email-pw"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              autoFocus
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-lg"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              required
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-lg"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !email.trim() || !password.trim()}
+            className="w-full py-3 bg-primary text-white rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+      ) : step === 'email' ? (
         <form onSubmit={handleSendOTP} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">

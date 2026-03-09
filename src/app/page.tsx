@@ -122,7 +122,8 @@ function LoginForm({ error }: { error?: string }) {
             <Shield size={28} className="text-primary" />
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-1">Agent Mary</h1>
-          <p className="text-sm text-gray-500">Enter password to continue</p>
+          <p className="text-sm text-gray-500">Tourism Content Platform</p>
+          <p className="text-xs text-gray-400 mt-1">Manage guides, groups, and tourist-generated content</p>
         </div>
 
         {error && (

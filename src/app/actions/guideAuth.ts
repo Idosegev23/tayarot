@@ -62,10 +62,12 @@ export async function createGuideWithAuth(
 
     const adminClient = createAdminClient();
 
-    // 1. Create auth user with Supabase Auth
+    // 1. Create auth user with Supabase Auth (password set for testing)
+    const GUIDE_PASSWORD = 'guide123';
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
-      email_confirm: true, // Auto-confirm so magic link works on first use
+      password: GUIDE_PASSWORD,
+      email_confirm: true,
     });
 
     if (authError) {
@@ -211,6 +213,30 @@ export async function verifyGuideOTP(email: string, token: string) {
     return { success: true };
   } catch (error) {
     logger.error('verifyGuideOTP error', error as Error);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Login guide with email + password (for testing without OTP emails).
+ */
+export async function loginGuideWithPassword(email: string, password: string) {
+  try {
+    const supabase = await createClient();
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      logger.warn('Guide password login failed', { error: error.message });
+      return { success: false, error: 'Invalid email or password' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    logger.error('loginGuideWithPassword error', error as Error);
     return { success: false, error: 'An unexpected error occurred' };
   }
 }

@@ -412,10 +412,65 @@ export async function seedDemoData(accessKey: string) {
       return { success: false, error: keysError.message };
     }
 
-    // Create sample posts
+    // Create groups
+    const groupsData = [
+      { guide_id: createdGuides![0].id, name: 'Israel Spring 2026', slug: 'israel-spring-2026', status: 'active' as const, start_date: '2026-03-15', end_date: '2026-03-22', description: 'A week-long tour of Israel highlights' },
+      { guide_id: createdGuides![1].id, name: 'Holy Land Discovery', slug: 'holy-land-discovery', status: 'active' as const, start_date: '2026-04-01', end_date: '2026-04-08', description: 'Exploring sacred sites and natural wonders' },
+    ];
+
+    const { data: createdGroups, error: groupsError } = await supabase
+      .from('groups')
+      .upsert(groupsData, { onConflict: 'guide_id,slug' })
+      .select();
+
+    if (groupsError) {
+      return { success: false, error: groupsError.message };
+    }
+
+    // Create participants (test names for the tourist gate)
+    const participantsData = [
+      { group_id: createdGroups![0].id, first_name: 'John', last_name: 'Smith' },
+      { group_id: createdGroups![0].id, first_name: 'Emma', last_name: 'Johnson' },
+      { group_id: createdGroups![0].id, first_name: 'Michael', last_name: 'Chen' },
+      { group_id: createdGroups![1].id, first_name: 'Sophie', last_name: 'Martin' },
+      { group_id: createdGroups![1].id, first_name: 'James', last_name: 'Wilson' },
+      { group_id: createdGroups![1].id, first_name: 'Anna', last_name: 'Lee' },
+    ];
+
+    await supabase
+      .from('group_participants')
+      .upsert(participantsData, { onConflict: 'group_id,first_name,last_name' });
+
+    // Create itinerary days
+    const daysData = [
+      { group_id: createdGroups![0].id, day_number: 1, date: '2026-03-15', title: 'Jerusalem Old City', description: 'Exploring the heart of Jerusalem' },
+      { group_id: createdGroups![1].id, day_number: 1, date: '2026-04-01', title: 'Tel Aviv & Jaffa', description: 'Beach vibes and ancient port city' },
+    ];
+
+    const { data: createdDays } = await supabase
+      .from('group_itinerary_days')
+      .upsert(daysData, { onConflict: 'group_id,day_number' })
+      .select();
+
+    // Create itinerary stops
+    if (createdDays && createdDays.length >= 2) {
+      const stopsData = [
+        { day_id: createdDays[0].id, order_index: 1, time: '09:00', location_name: 'Jaffa Gate', lat: 31.7767, lng: 35.2288, description: 'Enter the Old City through the historic Jaffa Gate', duration_minutes: 30 },
+        { day_id: createdDays[0].id, order_index: 2, time: '11:00', location_name: 'Western Wall', lat: 31.7767, lng: 35.2345, description: 'Visit the holiest site in Judaism', duration_minutes: 60 },
+        { day_id: createdDays[1].id, order_index: 1, time: '09:00', location_name: 'Tel Aviv Beach', lat: 32.0853, lng: 34.7818, description: 'Morning walk along the Mediterranean shore', duration_minutes: 45 },
+        { day_id: createdDays[1].id, order_index: 2, time: '11:30', location_name: 'Old Jaffa Port', lat: 32.0533, lng: 34.7533, description: 'Explore the ancient port and artist quarter', duration_minutes: 90 },
+      ];
+
+      await supabase
+        .from('group_itinerary_stops')
+        .upsert(stopsData, { onConflict: 'day_id,order_index' });
+    }
+
+    // Create sample posts (linked to groups)
     const samplePosts = [
       {
         guide_id: createdGuides![0].id,
+        group_id: createdGroups![0].id,
         tourist_name: 'John Smith',
         location_label: 'Jerusalem',
         experience_text: 'Walking through the Old City was a profound experience. The history here is tangible in every stone.',
@@ -426,6 +481,7 @@ export async function seedDemoData(accessKey: string) {
       },
       {
         guide_id: createdGuides![0].id,
+        group_id: createdGroups![0].id,
         tourist_name: 'Emma Johnson',
         location_label: 'Dead Sea',
         experience_text: 'Floating in the Dead Sea was surreal! The mineral-rich waters and the stunning desert landscape made it unforgettable.',
@@ -435,6 +491,7 @@ export async function seedDemoData(accessKey: string) {
       },
       {
         guide_id: createdGuides![1].id,
+        group_id: createdGroups![1].id,
         tourist_name: 'Michael Chen',
         location_label: 'Tel Aviv',
         experience_text: 'The vibrant energy of Tel Aviv is incredible. From the beaches to the food scene, every moment was amazing.',
@@ -444,6 +501,7 @@ export async function seedDemoData(accessKey: string) {
       },
       {
         guide_id: createdGuides![1].id,
+        group_id: createdGroups![1].id,
         tourist_name: 'Sophie Martin',
         location_label: 'Galilee',
         experience_text: 'The Sea of Galilee is breathtaking. Such a peaceful and spiritual place with incredible natural beauty.',
@@ -462,7 +520,21 @@ export async function seedDemoData(accessKey: string) {
       return { success: false, error: postsError.message };
     }
 
-    return { success: true };
+    // Return created data for test URLs
+    return {
+      success: true,
+      data: {
+        guides: createdGuides!.map(g => ({ slug: g.slug, display_name: g.display_name })),
+        groups: createdGroups!.map((g, i) => ({
+          slug: g.slug,
+          name: g.name,
+          guideSlug: i === 0 ? 'sarah' : 'david',
+          participants: i === 0
+            ? ['John Smith', 'Emma Johnson', 'Michael Chen']
+            : ['Sophie Martin', 'James Wilson', 'Anna Lee'],
+        })),
+      },
+    };
   } catch (error) {
     console.error('Seed data error:', error);
     return { success: false, error: 'An unexpected error occurred' };
@@ -476,8 +548,12 @@ export async function clearAllData(accessKey: string) {
 
     const supabase = await createClient();
 
-    // Delete in order: posts, access_keys, guides
+    // Delete in order (groups/posts cascade from guides, but be explicit)
+    await supabase.from('group_itinerary_stops').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('group_itinerary_days').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('group_participants').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('posts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('groups').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('access_keys').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('guides').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
